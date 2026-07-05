@@ -1,0 +1,24 @@
+{
+  "name": "service_public",
+  "version": "1.0.0",
+  "description": "Transforme le jeu de données **Fiches pratiques service-public.fr (Particuliers, DILA)** en deux artefacts complémentaires destinés à un **petit LLM local** :",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/share": "^8.0.1",
+    "@huggingface/transformers": "^3.8.1",
+    "@mlc-ai/web-llm": "^0.2.84",
+    "capacitor-voice-recorder": "^7.0.6",
+    "pdf-lib": "^1.17.1"
+  }
+}

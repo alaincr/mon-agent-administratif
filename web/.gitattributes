@@ -1,0 +1,5 @@
+# git-LFS pour les gros fichiers (modèles ML + runtime wasm). Les 2908 petits JSON de data/
+# et le reste restent en git normal.
+*.onnx filter=lfs diff=lfs merge=lfs -text
+*.wasm filter=lfs diff=lfs merge=lfs -text
+models/** filter=lfs diff=lfs merge=lfs -text

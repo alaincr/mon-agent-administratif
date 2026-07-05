@@ -1,0 +1,14 @@
+{
+  "appId": "org.demarches.demonstrateur",
+  "appName": "Démarches (démonstrateur)",
+  "webDir": "web",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

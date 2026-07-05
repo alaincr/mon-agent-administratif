@@ -1,0 +1,36 @@
+# dépendances Node (Transformers.js / onnxruntime — volumineux)
+node_modules/
+
+# données sources téléchargées (régénérables via curl + build_all.py)
+data/*.zip
+data/extract/
+
+# artefacts générés (régénérables)
+wiki/
+skills/
+index/
+web/data/
+
+# divers
+.DS_Store
+.gstack/
+
+# auto-hébergement (D-03) : lib + poids modèles, régénérables via scripts/fetch_vendor.mjs
+web/vendor/
+web/models/
+node_modules/
+
+# projets natifs Capacitor (régénérés par `npx cap add`) — SAUF nos sources Swift
+# (NativeLLMPlugin = pont FoundationModels fait main, non régénérable)
+/ios/*
+!/ios/App
+/ios/App/*
+!/ios/App/App
+/ios/App/App/*
+!/ios/App/App/AppDelegate.swift
+!/ios/App/App/MainViewController.swift
+!/ios/App/App/NativeLLMPlugin.swift
+!/ios/App/App/Info.plist
+/android/
+.gradle/
+*.xcworkspace/xcuserdata/

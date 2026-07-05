@@ -1,0 +1,21 @@
+# En-têtes de sécurité pour hébergement statique (format Netlify/Cloudflare Pages).
+# Le serveur de dev (python -m http.server) ne les applique PAS ; la CSP est aussi posée
+# en <meta> dans index.html pour couvrir ce cas. Sur un hôte maîtrisé, préférer ces en-têtes.
+/*
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval' https://esm.run https://cdn.jsdelivr.net; connect-src 'self' https://geo.api.gouv.fr https://api-lannuaire.service-public.fr https://esm.run https://huggingface.co https://*.hf.co https://cdn.jsdelivr.net https://raw.githubusercontent.com
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+# NOTE (R8.2) : Cross-Origin-Embedder-Policy: require-corp activerait SharedArrayBuffer donc
+# le multi-thread WASM (gain de perf sur e5/Whisper, à MESURER), MAIS bloque les ressources
+# cross-origin non-CORP — nos appels geo.api.gouv.fr / api-lannuaire (fetch) devront alors être
+# validés (CORP/CORS). À activer seulement après test. Idem : la couche WebLLM (esm.run + HF)
+# reste la SEULE dépendance CDN restante (E6, optionnelle, GPU) — à auto-héberger pour retirer
+# les exceptions esm.run/huggingface/jsdelivr/githubusercontent ci-dessus (fin de D-03).
+
+# Les poids de modèles doivent être servis avec le bon type MIME.
+/models/*
+  Content-Type: application/octet-stream
+/vendor/transformers/*.wasm
+  Content-Type: application/wasm

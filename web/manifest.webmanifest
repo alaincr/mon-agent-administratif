@@ -1,0 +1,14 @@
+{
+  "name": "Démarches (démonstrateur non officiel)",
+  "short_name": "Démarches",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b625a",
+  "lang": "fr",
+  "description": "Démonstrateur indépendant (non officiel) d'accès aux démarches administratives, d'après les fiches service-public.fr (DILA). Traitement 100 % local, hors-ligne.",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

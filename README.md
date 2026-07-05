@@ -1,0 +1,125 @@
+# Mon agent administratif — démarches comprises, préparées, 100 % sur l'appareil
+
+**Démonstrateur indépendant (non officiel)** issu du hackathon 2026 : un assistant qui aide à
+**trouver, comprendre et préparer** ses démarches administratives à partir des fiches « Vos
+droits » de service-public.fr (DILA) — entièrement **hors-ligne**, **sans collecte de données**,
+avec **IA locale** (navigateur WebGPU ou Apple Intelligence en natif).
+
+- **Démo en ligne** : <https://alcrawfo-agent-administratif.static.hf.space/index.html>
+- **Présentation du défi** : [`presentation/`](presentation/) — [diapositives (PDF)](presentation/diapositives.pdf) · [description du défi](presentation/DEFI.md)
+- **Captures des fonctionnalités** : [PDF](https://alcrawfo-agent-administratif.static.hf.space/screenshots/fonctionnalites.pdf)
+
+Principes non négociables : l'app **n'agit jamais à la place de l'usager** (ouverture d'un
+téléservice = confirmation explicite), **rien ne quitte l'appareil** (recherche, IA, simulateur
+d'aides : tout est local), et l'IA **n'invente pas** (réponses ancrées sur la fiche officielle,
+citées et vérifiées).
+
+---
+
+## Les briques logicielles
+
+### 1. Pipeline de données (Python, sans dépendances lourdes) — `scripts/`
+
+Transforme le jeu ouvert **« Fiches pratiques Particuliers » de la DILA** (XML, schéma 3.5,
+2 908 fiches, Licence Ouverte 2.0) en artefacts exploitables côté client :
+
+| Script | Produit |
+|---|---|
+| `build_skills.py` | 1 **parcours structuré** par fiche (`web/data/skills/<id>.json`) : arbre de décisions/étapes, pièces à fournir scopées par cas, téléservices (deep-links officiels), guichets |
+| `build_web.py` | `web/data/` : index de recherche `fiches.json`, `themes.json`, manifeste de fraîcheur (hash + date de vérification par fiche) |
+| `build_embeddings.mjs` | `embeddings.bin` : vecteurs **multilingual-e5-small** précalculés des 2 908 fiches (4,5 Mo) |
+| `build_wiki.py`, `build_all.py` | wiki markdown navigable + orchestration complète |
+| `fetch_vendor.mjs`, `fetch_webllm.mjs`, `fetch_cerfa.mjs` | vendoring : Transformers.js + runtime ORT WASM + poids e5/Whisper (~210 Mo), lib WebLLM + poids Gemma/Qwen (~860 Mo), formulaires CERFA |
+
+Détail du format source et du mapping XML → JSON : [`docs/PIPELINE-DONNEES.md`](docs/PIPELINE-DONNEES.md).
+
+```sh
+curl -L -o data/vosdroits-latest.zip https://lecomarquage.service-public.gouv.fr/vdd/3.5/part/zip/vosdroits-latest.zip
+python3 scripts/build_all.py           # extraction + skills + web/data + wiki
+npm i && node scripts/build_embeddings.mjs
+node scripts/fetch_vendor.mjs && node scripts/fetch_webllm.mjs   # modèles auto-hébergés
+python3 -m http.server 8765 --directory web
+```
+
+### 2. Application web PWA (vanilla JS, zéro framework, zéro build) — `web/`
+
+`index.html + app.js + style.css` : aucune dépendance runtime pour le noyau.
+
+- **Recherche hybride** : BM25 en JS pur + **sémantique e5** (Transformers.js en WASM, sans GPU),
+  fusion RRF — « je vais avoir un bébé » trouve grossesse/Paje/congé maternité.
+- **Reformulation validée** : demande floue ou hors-domaine → l'app propose des démarches précises
+  **à valider par l'usager** (jamais de devinette silencieuse).
+- **Déroulé pas à pas** : parcours de l'arbre de décisions de la fiche, pièces filtrées selon le
+  cas, guichet réel via `geo.api.gouv.fr` + API Annuaire (seuls appels réseau, explicites). Les
+  **questions équivalentes ne sont posées qu'une fois** (les fiches DILA répètent p. ex. Caf/MSA
+  jusqu'à 6 fois : signature de décision insensible à la formulation, réponse mémorisée).
+- **Voix** : dictée **Whisper local** (WASM, texte déposé dans le champ, jamais lancé tout seul) ;
+  lecture à voix haute (Web Speech API).
+- **PWA hors-ligne** : service worker réseau-d'abord, corpus embarqué, fraîcheur affichée par fiche.
+- **Sécurité** : CSP stricte (`connect-src` limité à l'origine + APIs gouv + HF), échappement
+  systématique, aucune analytique.
+
+### 3. IA locale (WebLLM / WebGPU) — `web/app.js` + `web/models/`
+
+- **Modèles** : **Gemma 3 1B** (q4f16, ~600 Mo) par défaut, **Qwen 2.5 0.5B** (~290 Mo) en
+  « modèle léger » — lien de bascule dès le chargement, retour possible, **repli automatique** si
+  la mémoire GPU ne suit pas. Anti-**boucles de répétition** des petits modèles :
+  `frequency/presence_penalty`, température non nulle, plafond de tokens (`GEN_OPTS`).
+- **Ancrage anti-hallucination** : réponse générée **uniquement** depuis la fiche ; le code (pas le
+  modèle) produit la **citation verbatim** du passage le plus proche (cosinus e5) ; une **2ᵉ passe
+  juge** la fidélité (badge « ✓ cohérent » / « ⚠ écart possible »).
+- **Conversation de suivi** : questions complémentaires avec historique ; la fiche reste dans le
+  contexte (troncature qui préserve système + 1ᵉʳ échange) ; chaque tour est re-vérifié.
+- **Auto-hébergement (D-03)** : lib, WASM et poids servis par notre origine — 0 requête ML tierce.
+  Sur le Space Hugging Face (quota 1 Go), une **sonde** bascule Gemma vers un repo modèle HF à nous
+  ([alcrawfo/gemma3-1b-it-q4f16_1-MLC-web](https://huggingface.co/alcrawfo/gemma3-1b-it-q4f16_1-MLC-web)) ; en local/natif, tout reste sur l'origine.
+
+### 4. Simulateur « Mes aides » (moteur de règles local) — `web/simu.js`
+
+Éligibilité **indicative** à 8 prestations (RSA, prime d'activité, APL/ALS/ALF, AAH, ASPA,
+allocations familiales, ARS, CSS), sans réseau. **Minimisation des données** : chaque règle
+s'évalue sur des réponses partielles et déclare ce qui lui manque (`{need:[champs]}`) ; le
+questionnaire ne pose une question **que si une aide encore indécise en a besoin** (propriétaire →
+aides au logement tranchées à la 2ᵉ question, sans les revenus ; âge en tranches ; résidence
+demandée seulement si un droit est plausible). Verdicts prudents (probable / à vérifier / peu
+probable), seuils datés (avril 2025), renvoi systématique vers les simulateurs officiels.
+
+### 5. Applications natives (Capacitor) — `ios/`, `android/`, `CAPACITOR.md`
+
+Même code web empaqueté ; corpus + modèles e5/Whisper **embarqués** (hors-ligne garanti, pas
+d'éviction de cache navigateur). En iOS, l'assistant passe par **FoundationModels (Apple
+Intelligence, iOS 26+)** via [`NativeLLMPlugin.swift`](ios/App/App/NativeLLMPlugin.swift)
+(~60 lignes : `available()` / `generate(system, prompt)`) — les poids WebLLM sont exclus du bundle
+(pas de WebGPU exploitable en WKWebView). Le projet Xcode/Gradle se régénère (`npx cap add ios`),
+seules nos sources Swift sont versionnées. Vérifié sur simulateur iPhone 17 Pro (iOS 26.5).
+
+### 6. Déploiement
+
+- **Space HF statique** [alcrawfo/agent-administratif](https://huggingface.co/spaces/alcrawfo/agent-administratif) :
+  contenu de `web/` à la racine, publié par `huggingface_hub.upload_folder` (pas de CI).
+- **Repo modèle HF** pour les poids Gemma (au-delà du quota Space).
+
+---
+
+## Arborescence
+
+```
+presentation/    diapositives du hackathon (PNG, PDF, HTML autonome) + DEFI.md
+scripts/         pipeline données + vendoring modèles
+web/             PWA complète (app.js, simu.js, sw.js, README du Space)
+  data/          (généré) index + skills        [gitignoré]
+  models/        (téléchargé) e5, Whisper, LLM  [gitignoré]
+  vendor/        (téléchargé) libs JS/WASM      [gitignoré]
+ios/App/App/     NativeLLMPlugin.swift & co (le reste du projet iOS se régénère)
+docs/            PIPELINE-DONNEES.md (format DILA, mapping XML→JSON)
+wiki/ skills/ index/   (générés)                [gitignorés]
+```
+
+## Licences & attribution
+
+Code sous licence MIT ([LICENSE](LICENSE)). Données : **« Fiches pratiques Particuliers »,
+Service-Public.gouv.fr / DILA**, Licence Ouverte 2.0 — attribution obligatoire, jeu téléchargé
+depuis data.gouv.fr (voir [`docs/PIPELINE-DONNEES.md`](docs/PIPELINE-DONNEES.md)). Modèles :
+Gemma (Google, licence Gemma), Qwen (Alibaba, Apache 2.0), multilingual-e5-small (MIT),
+Whisper (OpenAI, MIT), via MLC/WebLLM et Transformers.js. **Ce démonstrateur n'est pas le site
+officiel service-public.fr.**
