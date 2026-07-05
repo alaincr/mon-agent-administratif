@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mon agent administratif">
+  <!-- Identité : le ◆ de la marque in-app devient une loupe (chercher ses droits).
+       Couleurs du mock-up iOS : teal #0b625a, blanc, coins arrondis. -->
+  <rect width="512" height="512" rx="116" fill="#0b625a"/>
+  <rect x="146" y="146" width="180" height="180" rx="30" fill="none" stroke="#ffffff" stroke-width="42" transform="rotate(45 236 236)"/>
+  <line x1="342" y1="342" x2="424" y2="424" stroke="#ffffff" stroke-width="50" stroke-linecap="round"/>
+</svg>

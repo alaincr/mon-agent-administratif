@@ -1,3 +1,5 @@
+<p align="center"><img src="brand/banniere.svg" alt="Mon agent administratif — trouver, comprendre et préparer ses démarches, 100 % sur votre appareil" width="900"></p>
+
 # Mon agent administratif — démarches comprises, préparées, 100 % sur l'appareil
 
 **Démonstrateur indépendant (non officiel)** issu du hackathon 2026 : un assistant qui aide à
@@ -104,7 +106,8 @@ seules nos sources Swift sont versionnées. Vérifié sur simulateur iPhone 17 P
 ## Arborescence
 
 ```
-presentation/    diapositives du hackathon (PNG, PDF, HTML autonome) + DEFI.md
+brand/           identité visuelle : logo (diamant-loupe), logotype, bannière (SVG)
+presentation/    diapositives du hackathon (PNG, PDF, HTML autonome) + DEFI.md + images sources
 scripts/         pipeline données + vendoring modèles
 web/             PWA complète (app.js, simu.js, sw.js, README du Space)
   data/          (généré) index + skills        [gitignoré]
