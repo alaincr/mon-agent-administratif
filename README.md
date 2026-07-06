@@ -86,7 +86,22 @@ aides au logement tranchées à la 2ᵉ question, sans les revenus ; âge en tra
 demandée seulement si un droit est plausible). Verdicts prudents (probable / à vérifier / peu
 probable), seuils datés (avril 2025), renvoi systématique vers les simulateurs officiels.
 
-### 5. Applications natives (Capacitor) — `ios/`, `android/`, `CAPACITOR.md`
+### 5. « Mon coffre » : scan 2D-Doc et données certifiées — `web/coffre.js`
+
+Le **« Dites-le-nous une fois » inversé** : l'usager scanne le code **2D-Doc** (DataMatrix signé,
+standard ANTS) imprimé sur ses documents officiels — avis d'imposition, justificatifs de domicile,
+attestations. L'app décode (ZXing vendorisé), parse le format (en-tête v2/v3/v4, champs GS/RS/US —
+dictionnaire de 241 champs généré depuis les spécifications via
+[betagouv/2ddoc-parser](https://github.com/betagouv/2ddoc-parser)), et **vérifie la signature
+ECDSA hors-ligne** (WebCrypto, format r‖s natif) contre les **clés publiques des émetteurs**
+embarquées (~2 700 clés extraites de la TSL ANTS + annuaires d'AC par
+`scripts/fetch_2ddoc_keys.py`). Verdicts honnêtes : *authenticité vérifiée / émetteur inconnu /
+signature invalide — document suspect*. Les données certifiées (revenu fiscal de référence,
+identité, adresse) sont stockées localement et **pré-remplissent « Mes aides »** (« Utiliser mon
+avis d'imposition scanné : ≈ 5 267 €/mois, RFR ÷ 12 ») — zéro double saisie, zéro transmission.
+Un spécimen officiel est intégré pour essayer sans document réel.
+
+### 6. Applications natives (Capacitor) — `ios/`, `android/`, `CAPACITOR.md`
 
 Même code web empaqueté ; corpus + modèles e5/Whisper **embarqués** (hors-ligne garanti, pas
 d'éviction de cache navigateur). En iOS, l'assistant passe par **FoundationModels (Apple
@@ -95,7 +110,7 @@ Intelligence, iOS 26+)** via [`NativeLLMPlugin.swift`](ios/App/App/NativeLLMPlug
 (pas de WebGPU exploitable en WKWebView). Le projet Xcode/Gradle se régénère (`npx cap add ios`),
 seules nos sources Swift sont versionnées. Vérifié sur simulateur iPhone 17 Pro (iOS 26.5).
 
-### 6. Déploiement
+### 7. Déploiement
 
 - **Space HF statique** [alcrawfo/agent-administratif](https://huggingface.co/spaces/alcrawfo/agent-administratif) :
   contenu de `web/` à la racine, publié par `huggingface_hub.upload_folder` (pas de CI).

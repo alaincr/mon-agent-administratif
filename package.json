@@ -18,6 +18,8 @@
     "@capacitor/share": "^8.0.1",
     "@huggingface/transformers": "^3.8.1",
     "@mlc-ai/web-llm": "^0.2.84",
+    "@zxing/library": "^0.21.3",
+    "bwip-js": "^4.11.2",
     "capacitor-voice-recorder": "^7.0.6",
     "pdf-lib": "^1.17.1"
   }

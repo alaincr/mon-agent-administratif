@@ -179,6 +179,8 @@ main{max-width:640px;margin:0 auto;padding:14px 16px 24px}
 .sim-lt{font-size:13px;color:var(--mut);font-weight:500;margin:0 2px 6px}
 .sim-mini{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--sec);margin:0 0 6px}
 .sim-restart{font-size:13px;margin-top:16px}
+.sim-cert{margin-top:10px}
+.sim-cert .opt{display:block;width:100%;font-size:14px;line-height:1.45}
 .pmsg{font-size:14px;color:var(--ok);margin-top:10px;min-height:1.2em}
 .dossier{background:var(--card2);border-radius:var(--r);padding:14px;margin-top:12px}
 .drow{margin-bottom:16px}

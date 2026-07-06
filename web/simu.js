@@ -259,8 +259,23 @@ function simuAsk(d, field, a){
   if(f.eur){
     flow.innerHTML = `${prog}<div class="q"><h4>${f.q}</h4>
       ${f.hint ? `<p class="sim-hint">${f.hint}</p>` : ''}
-      <div class="sim-eur"><input type="number" inputmode="decimal" min="0" placeholder="ex. 1500" aria-label="${f.q}"><button class="btn act" type="button">Continuer</button></div></div>`;
+      <div class="sim-eur"><input type="number" inputmode="decimal" min="0" placeholder="ex. 1500" aria-label="${f.q}"><button class="btn act" type="button">Continuer</button></div>
+      <div class="sim-cert"></div></div>`;
     const inp = flow.querySelector('input'), go = flow.querySelector('button');
+    // donnée CERTIFIÉE du coffre (avis d'imposition scanné) : proposer le RFR mensualisé pour la
+    // question des revenus du foyer — l'usager valide toujours (approximation : RFR annuel ÷ 12).
+    if(field === 'revenus' && window.coffreRFR){
+      const c = coffreRFR();
+      if(c && c.rfr > 0){
+        const mens = Math.round(c.rfr / 12);
+        const cert = flow.querySelector('.sim-cert');
+        cert.innerHTML = `<button class="opt" type="button">Utiliser mon avis d'imposition scanné${c.annee ? ' (revenus ' + esc(String(c.annee)) + ')' : ''} :
+          <b>≈ ${mens.toLocaleString('fr-FR')} €/mois</b> <span class="muted">(RFR ${Number(c.rfr).toLocaleString('fr-FR')} € ÷ 12${c.verif === 'valide' ? ', authenticité vérifiée' : ''})</span></button>`;
+        cert.querySelector('button').onclick = () => {
+          simAnswers[field] = mens; setSimu(simAnswers); simuStep(d);
+        };
+      }
+    }
     const submit = () => {
       const v = parseFloat(String(inp.value).replace(',','.'));
       if(isNaN(v) || v < 0){ inp.focus(); return; }

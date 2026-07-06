@@ -146,6 +146,17 @@ indicatifs datés (avril 2025) et avertissement : l'estimation **ne vaut pas dé
 <img src="https://alcrawfo-agent-administratif.static.hf.space/screenshots/mes-aides-resultat.png" alt="Résultat indicatif Mes aides : cartes par prestation avec badge et liens officiels" width="380">
 </p>
 
+## « Mon coffre » — scan 2D-Doc, données certifiées, zéro double saisie
+
+Scannez le **code 2D-Doc** (le petit carré signé imprimé sur les avis d'imposition, justificatifs
+de domicile, attestations…) : décodage DataMatrix, lecture du format ANTS et **vérification de la
+signature ECDSA entièrement hors-ligne** (clés publiques des émetteurs officiels embarquées,
+issues de la TSL ANTS). Les données certifiées extraites — revenu fiscal de référence, identité,
+adresse — restent sur l'appareil et **pré-remplissent « Mes aides »** (RFR mensualisé proposé à la
+question des revenus, provenance affichée). Badges honnêtes : ✓ authenticité vérifiée / émetteur
+inconnu / ✗ signature invalide. Un **spécimen officiel** (avis fictif « RETI Patrick » des
+spécifications ANTS) permet d'essayer sans document réel : onglet Aide → Mon coffre.
+
 ## Application native iOS (Capacitor) — IA Apple sur l'appareil
 
 Le même code web est empaqueté en **app iOS** (Capacitor). En natif, l'assistant IA passe par

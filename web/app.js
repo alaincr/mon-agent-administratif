@@ -65,6 +65,7 @@ function render(){                           // applique l'état décrit par l'U
   if(h === '#/themes'){ setView('themes', '#/themes'); return; }
   if(h === '#/profil'){ setView('detail', '#/aide'); renderProfil(); return; }
   if(h === '#/aides'){ setView('detail', '#/aides'); if(window.renderSimu) renderSimu(); return; }   // simulateur « Mes aides » (simu.js)
+  if(h === '#/coffre'){ setView('detail', '#/aide'); if(window.renderCoffre) renderCoffre(); return; } // coffre 2D-Doc (coffre.js)
   const m = /^#\/(fiche|theme|q)\/(.+)$/.exec(h);
   if(!m){ if($('#q').value) $('#q').value=''; setView('home', '#'); showEmpty(); return; }
   const kind = m[1], val = decodeURIComponent(m[2]);
