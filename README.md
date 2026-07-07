@@ -111,6 +111,19 @@ rien ne quitte l'appareil et le tri local reste. Pour l'aide au logement, deux e
 le calcul que le tri local ne peut pas faire. L'oracle affine aussi le tri : une CSS « peu
 probable » localement peut se révéler accessible avec participation, chiffrée au euro près.
 
+**Coffre → oracle** : les valeurs **certifiées** du coffre 2D-Doc alimentent le calcul exact,
+**case par case** (salaire brut d'un bulletin scanné, commune d'un justificatif de domicile —
+résolue en code commune) ; seules ces valeurs chiffrées partent, jamais le nom ni l'adresse.
+
+**Simulateur ciblé chômage (ARE) — `web/chomage.js`, 100 % local** : OpenFisca ne modélise pas le
+calcul SJR→ARE (l'allocation journalière y est une entrée) ; les règles **Unédic du 01/07/2025**
+sont donc codées en clair et datées (SJR réforme 2021 avec plafonnement des jours non travaillés,
+40,4 % + partie fixe vs 57 %, plancher/plafond, **dégressivité** hauts revenus, durée avec
+coefficient contracyclique ×0,75 et bornes d'âge 53/55 ans). 4 à 6 questions, salaire brut
+**pré-remplissable depuis un bulletin certifié du coffre**, verdict + allocation journalière/
+mensuelle brute + durée, renvoi France Travail. Accessible via `#/chomage` et depuis les
+résultats de « Mes aides ».
+
 ### 5. « Mon coffre » : scan 2D-Doc et données certifiées — `web/coffre.js`
 
 Le **« Dites-le-nous une fois » inversé** : l'usager scanne le code **2D-Doc** (DataMatrix signé,

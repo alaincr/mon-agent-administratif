@@ -82,15 +82,28 @@ async function oracleCompute(a, extra){
 function attachOracle(host, a){
   if(!host || host.querySelector('.orc')) return;
   const locataire = a.logement === 'locataire';
+  // BRANCHEMENT DU COFFRE (opt-in, case par case) : seules des VALEURS chiffrées certifiées
+  // peuvent partir (salaire brut d'un bulletin, commune d'un justificatif) — jamais nom/adresse.
+  const cSal = window.coffreSalaire ? coffreSalaire() : null;
+  const cCom = (locataire && window.coffreCommune) ? coffreCommune() : null;
   const el = document.createElement('div');
   el.className = 'orc';
   el.innerHTML = `
     <h3 class="sim-rt">Montants précis (calcul officiel)</h3>
     <p class="orc-note">Pour aller au-delà de l'estimation : le <b>moteur officiel OpenFisca</b> peut
       calculer les <b>montants exacts</b> de vos aides. Votre <b>situation chiffrée</b> (composition du
-      foyer, tranche d'âge, revenus${locataire ? ', loyer et commune' : ''}) sera envoyée <b>anonymement</b>
-      à notre serveur de calcul — <b>jamais votre identité</b>, et rien n'est conservé. Hypothèse :
-      revenus d'activité salariée${a.age==='senior' ? ' (pension de retraite)' : ''}, stables sur 3 ans.</p>
+      foyer, tranche d'âge, revenus${locataire ? ', loyer et commune' : ''}${(cSal||cCom) ? ', et les valeurs de votre coffre si vous les cochez' : ''})
+      sera envoyée <b>anonymement</b> à notre serveur de calcul — <b>jamais votre identité</b>, et rien
+      n'est conservé. Hypothèse : revenus d'activité salariée${a.age==='senior' ? ' (pension de retraite)' : ''}, stables sur 3 ans.</p>
+    ${(cSal || cCom) ? `<div class="orc-coffre">
+      <p class="orc-clab">📦 Depuis votre coffre (certifié) :</p>
+      ${cSal ? `<label class="orc-ck"><input type="checkbox" class="orc-usesal" checked>
+        Utiliser mon <b>salaire brut : ${cSal.brut.toLocaleString('fr-FR')} €/mois</b>
+        <span class="muted">(moyenne de ${cSal.n} bulletin${cSal.n>1?'s':''} scanné${cSal.n>1?'s':''})</span></label>` : ''}
+      ${cCom ? `<label class="orc-ck"><input type="checkbox" class="orc-usecom" checked>
+        Utiliser ma <b>commune : ${esc(cCom.commune)}</b>
+        <span class="muted">(${esc(cCom.label)})</span></label>` : ''}
+    </div>` : ''}
     ${locataire ? `
     <div class="pform">
       <label class="pfield"><span>Votre loyer mensuel hors charges, en €</span>
@@ -120,6 +133,13 @@ function attachOracle(host, a){
       }, 350);
     });
   }
+  // commune certifiée du coffre : pré-remplit le champ (l'autocomplete résout le code commune)
+  if(cCom && cIn){
+    cIn.value = cCom.commune;
+    cIn.dispatchEvent(new Event('input'));
+    const ck = el.querySelector('.orc-usecom');
+    if(ck) ck.onchange = () => { if(!ck.checked){ cIn.value = ''; depcom = null; cSt.textContent = ''; } else { cIn.value = cCom.commune; cIn.dispatchEvent(new Event('input')); } };
+  }
   const btn = el.querySelector('.orc-go'), out = el.querySelector('.orc-out');
   btn.onclick = async () => {
     const extra = {};
@@ -128,9 +148,12 @@ function attachOracle(host, a){
       extra.depcom = depcom;
       if(!extra.loyer){ out.innerHTML = '<span class="muted">Indiquez votre loyer pour calculer l\'aide au logement (ou laissez 0 pour les autres aides).</span>'; }
     }
+    // salaire brut certifié coché → remplace le revenu déclaré (plus fiable : c'est du brut)
+    const useSal = el.querySelector('.orc-usesal');
+    const a2 = (useSal && useSal.checked && cSal) ? Object.assign({}, a, { revenus: cSal.brut }) : a;
     btn.disabled = true; out.textContent = 'Calcul par le moteur officiel… (quelques secondes ; réveil du serveur possible au premier appel)';
     try{
-      const m = await oracleCompute(a, extra);
+      const m = await oracleCompute(a2, extra);
       const rows = [];
       const add = (label, v, unit) => { if(v !== null && v > 0.5) rows.push([label, Math.round(v) + ' ' + unit]); };
       add('Revenu de solidarité active (RSA)', m.rsa, '€/mois');

@@ -65,6 +65,7 @@ function render(){                           // applique l'état décrit par l'U
   if(h === '#/themes'){ setView('themes', '#/themes'); return; }
   if(h === '#/profil'){ setView('detail', '#/aide'); renderProfil(); return; }
   if(h === '#/aides'){ setView('detail', '#/aides'); if(window.renderSimu) renderSimu(); return; }   // simulateur « Mes aides » (simu.js)
+  if(h === '#/chomage'){ setView('detail', '#/aides'); if(window.renderChomage) renderChomage(); return; }   // simulateur ciblé ARE (chomage.js)
   if(h === '#/coffre'){ setView('detail', '#/aide'); if(window.renderCoffre) renderCoffre(); return; } // coffre 2D-Doc (coffre.js)
   const m = /^#\/(fiche|theme|q)\/(.+)$/.exec(h);
   if(!m){ if($('#q').value) $('#q').value=''; setView('home', '#'); showEmpty(); return; }

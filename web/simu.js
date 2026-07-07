@@ -336,5 +336,9 @@ function simuFinish(d, evals){
     + res.map(e => simuCardHtml(e.r, e.out)).join('');
   // 2e étage optionnel : montants exacts par l'oracle OpenFisca (consentement explicite requis)
   if(window.attachOracle && res.some(e => e.out.v !== 'non')) attachOracle(host, simuNorm(simAnswers));
+  // simulateur ciblé : allocation chômage (calcul local Unédic)
+  host.insertAdjacentHTML('beforeend',
+    '<p class="sim-links" style="margin-top:14px">Vous perdez (ou avez perdu) votre emploi ? ' +
+    '<a class="lien" href="#/chomage">Estimer votre allocation chômage (ARE)</a></p>');
   host.scrollIntoView({ block:'nearest', behavior:'smooth' });
 }

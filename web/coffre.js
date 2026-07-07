@@ -122,9 +122,15 @@ function ddocExtract(doc){
     out.prenom = f['12'] || f['16'] || null; out.nom = f['13'] || f['17'] || null;
     out.adresse = [f['20'], f['22'], f['24'], f['25']].filter(Boolean).join(' / ')
                || [f['10'], f['14']].filter(Boolean).join(' / ') || null;
+    out.cp = f['24'] || f['2B'] || f['6W'] || null;                // commune structurée (utile à
+    out.commune = f['25'] || f['2C'] || f['6X'] || null;           // la zone d'aide au logement)
   } else if(t === '06'){                                           // bulletin de salaire
     out.categorie = 'Bulletin de salaire';
     out.nom = f['13'] || f['30'] || null;
+    out.salaire_brut = num(f['5A']);                               // brut du mois (certifié)
+    out.salaire_net = num(f['5C']) || num(f['58']);
+    out.periode_fin = f['54'] || null;                             // MMAA
+    out.type_contrat = f['5T'] || null;                            // 0 CDD · 1 CDI · 2 CTT · 3 CAP
   } else if(t === '07'){                                           // pièce d'identité
     out.categorie = 'Pièce d\'identité';
     out.prenom = f['60'] || f['12'] || null; out.nom = f['62'] || f['13'] || null;
@@ -209,6 +215,26 @@ function coffreRFR(){
   }
   return null;
 }
+// salaire brut certifié : moyenne des bulletins de salaire du coffre (fiables uniquement)
+function coffreSalaire(){
+  const bruts = [], periodes = [];
+  for(const e of getCoffre()){
+    if(e.data && e.data.salaire_brut != null && (e.verif === 'valide' || e.verif === 'cert_inconnu')){
+      bruts.push(e.data.salaire_brut);
+      if(e.data.periode_fin) periodes.push(e.data.periode_fin);
+    }
+  }
+  if(!bruts.length) return null;
+  return { brut: Math.round(bruts.reduce((a,b)=>a+b,0) / bruts.length), n: bruts.length, periodes };
+}
+// commune certifiée (justificatif de domicile) — pour la zone d'aide au logement
+function coffreCommune(){
+  for(const e of getCoffre()){
+    if(e.data && e.data.commune && (e.verif === 'valide' || e.verif === 'cert_inconnu'))
+      return { commune: e.data.commune, cp: e.data.cp, label: e.label };
+  }
+  return null;
+}
 
 // ----- écran « Mon coffre » (#/coffre) -----
 function renderCoffre(){
@@ -274,6 +300,9 @@ function coffreList(d){
     if(e.data.rfr != null) rows.push('<b>Revenu fiscal de référence : ' + Number(e.data.rfr).toLocaleString('fr-FR') + ' €</b>'
       + (e.data.annee_revenus ? ' (revenus ' + esc(e.data.annee_revenus) + ')' : ''));
     if(e.data.parts != null) rows.push('Parts fiscales : ' + String(e.data.parts).replace('.', ','));
+    if(e.data.salaire_brut != null) rows.push('<b>Salaire brut du mois : ' + Number(e.data.salaire_brut).toLocaleString('fr-FR') + ' €</b>'
+      + (e.data.periode_fin ? ' (période ' + esc(e.data.periode_fin.slice(0,2) + '/' + e.data.periode_fin.slice(2)) + ')' : ''));
+    if(e.data.commune) rows.push('Commune : ' + esc(e.data.commune) + (e.data.cp ? ' (' + esc(e.data.cp) + ')' : ''));
     if(e.data.adresse) rows.push('Adresse : ' + esc(e.data.adresse));
     return `<div class="sim-card coffre-card">
       <div class="sim-head"><span class="sim-badge ${cls}">${label}</span><b>${esc(e.label)}</b></div>
