@@ -47,10 +47,72 @@ const PARCOURS = {
                 { q:'compte personnel de formation CPF', label:'Fiche CPF' }] },
     ],
   },
+
+  naissance: {
+    titre: 'J\'attends un enfant',
+    dateQ: 'Quelle est la date prévue d\'accouchement ?',
+    intro: 'De la déclaration de grossesse à l\'arrivée de l\'enfant, les démarches s\'étalent sur des mois — ' +
+           'certaines très tôt, une dans les 5 jours après la naissance. Ce parcours les remet dans l\'ordre.',
+    etapes: [
+      { id:'declaration', titre:'Déclarer la grossesse (CPAM et CAF)',
+        quand: f => ({ txt:'avant la fin du 3ᵉ mois de grossesse', due: addD(f, -180), asap:true }),
+        texte: 'Le premier examen prénatal donne lieu à la déclaration, transmise à l\'Assurance maladie et à la CAF : elle ouvre la prise en charge à 100 % et les droits PAJE.',
+        liens: [{ q:'déclaration de grossesse', label:'Voir la fiche' }] },
+      { id:'examens', titre:'Suivre les examens prénataux',
+        quand: f => ({ txt:'tout au long de la grossesse', recurrent:true }),
+        texte: '7 examens médicaux obligatoires, pris en charge. À partir du 6ᵉ mois, tout est remboursé à 100 % (maternité).',
+        liens: [{ q:'examens médicaux grossesse suivi', label:'Voir la fiche' }] },
+      { id:'reconnaissance', titre:'Reconnaissance anticipée (couples non mariés)',
+        quand: f => ({ txt:'avant la naissance, dès maintenant', asap:true }),
+        texte: 'Si vous n\'êtes pas mariés, le père peut reconnaître l\'enfant avant la naissance, en mairie — cela établit la filiation dès le premier jour.',
+        liens: [{ q:'reconnaissance anticipée enfant', label:'Voir la fiche' }] },
+      { id:'garde', titre:'Chercher un mode de garde (tôt !)',
+        quand: f => ({ txt:'dès le début de la grossesse', asap:true }),
+        texte: 'Crèche, assistante maternelle, garde à domicile : les listes d\'attente se comptent en mois. Le complément de libre choix du mode de garde (CMG) aide à financer.',
+        liens: [{ q:'modes de garde jeune enfant crèche assistante maternelle', label:'Voir la fiche' }] },
+      { id:'prime', titre:'Prime à la naissance (PAJE)',
+        quand: f => ({ txt:'versée au 7ᵉ mois de grossesse', due: addD(f, -60) }),
+        texte: 'Sous conditions de ressources, ~1 000 € versés au 7ᵉ mois — automatique si la grossesse est déclarée. Vérifiez vos droits (allocation de base ensuite, chaque mois).',
+        liens: [{ href:'#/aides', label:'Mes aides' }, { q:'prime à la naissance PAJE', label:'Voir la fiche' }] },
+      { id:'conges', titre:'Poser vos congés (maternité, paternité)',
+        quand: f => ({ txt:'prévenir l\'employeur au moins 1 mois avant', due: addD(f, -30) }),
+        texte: 'Congé maternité (16 semaines minimum, obligatoire en partie) ; congé de paternité et d\'accueil de 28 jours, à prendre dans les 6 mois — l\'employeur doit être prévenu 1 mois avant.',
+        liens: [{ q:'congé maternité durée', label:'Congé maternité' }, { q:'congé paternité 28 jours', label:'Congé paternité' }] },
+      { id:'naissance', titre:'Déclarer la naissance en mairie',
+        quand: f => ({ txt:'dans les 5 JOURS après la naissance', due: addD(f, 5), asap:true }),
+        texte: 'Obligatoire, à la mairie du lieu de naissance, dans les 5 jours (jour de l\'accouchement non compté). Passé ce délai, il faut un jugement — ne la laissez à personne d\'autre que le papa ou une personne de confiance présente à l\'accouchement.',
+        liens: [{ q:'déclaration de naissance délai mairie', label:'Voir la fiche' }] },
+      { id:'rattachement', titre:'Rattacher l\'enfant (CPAM, mutuelle, CAF, impôts)',
+        quand: f => ({ txt:'dans le mois qui suit', due: addD(f, 30) }),
+        texte: 'Rattachement à l\'Assurance maladie des deux parents (possible), à la mutuelle, mise à jour CAF (PAJE, allocations familiales dès le 2ᵉ enfant) — et vos aides changent : refaites l\'estimation.',
+        liens: [{ href:'#/aides', label:'Recalculer mes aides' }, { q:'rattacher enfant assurance maladie parents', label:'Voir la fiche' }] },
+    ],
+  },
 };
 
 function addD(iso, days){ const d = new Date(iso); d.setDate(d.getDate() + days); return d; }
 function fmtD(d){ return d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }); }
+
+// ----- rappels : export AGENDA (.ics) — universel (iPhone/Android/desktop), zéro permission,
+// zéro serveur : le fichier est généré sur l'appareil et ouvert par l'app d'agenda du système.
+function icsEsc(s){ return String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+function icsDate(d){ return d.toISOString().slice(0,10).replace(/-/g,''); }
+function icsEvent(uid, date, titre, desc){
+  return ['BEGIN:VEVENT', 'UID:' + uid + '@demarches-demo',
+    'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g,'').slice(0,15) + 'Z',
+    'DTSTART;VALUE=DATE:' + icsDate(date),
+    'SUMMARY:' + icsEsc(titre), 'DESCRIPTION:' + icsEsc(desc),
+    'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(titre), 'END:VALARM',
+    'END:VEVENT'].join('\r\n');
+}
+function icsDownload(filename, events){
+  const cal = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Demarches demonstrateur//FR',
+               'CALSCALE:GREGORIAN', events.join('\r\n'), 'END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([cal], { type:'text/calendar;charset=utf-8' }));
+  a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
 function parcoursKey(id){ return 'sp_parcours_' + id; }
 function parcoursState(id){ try{ return JSON.parse(localStorage.getItem(parcoursKey(id))||'{}'); }catch(e){ return {}; } }
 function parcoursSave(id, st){ try{ localStorage.setItem(parcoursKey(id), JSON.stringify(st)); }catch(e){} }
@@ -92,6 +154,8 @@ function renderParcours(id){
       const liens = (e.liens||[]).map(l => l.q
         ? `<a class="lien" href="#/q/${encodeURIComponent(l.q)}">${l.label}</a>`
         : `<a class="lien" href="${l.href}"${l.href.startsWith('http') ? ' target="_blank" rel="noopener noreferrer"' : ''}>${l.label}</a>`
+      ).concat(fin && w.due && !checked && w.due >= now
+        ? [`<a class="lien pc-ics" data-id="${e.id}" href="#">📅 Rappel agenda</a>`] : []
       ).join(' · ');
       return `<div class="sim-card pc-step${checked ? ' pc-done' : ''}">
         <div class="sim-head">
@@ -106,6 +170,29 @@ function renderParcours(id){
     d.querySelectorAll('.pc-ck input').forEach(ck => ck.onchange = () => {
       st.done = st.done || {}; st.done[ck.dataset.id] = ck.checked; parcoursSave(id, st); steps();
     });
+    // rappels agenda : une étape (.ics à 1 événement) ou toutes les échéances d'un coup
+    const evFor = e => {
+      const w = e.quand(fin);
+      return icsEvent(id + '-' + e.id, w.due, P.titre + ' — ' + e.titre,
+        e.texte + ' (Démarches, parcours « ' + P.titre + ' »)');
+    };
+    d.querySelectorAll('.pc-ics').forEach(a => a.onclick = ev => {
+      ev.preventDefault();
+      const e = P.etapes.find(x => x.id === a.dataset.id);
+      if(e) icsDownload('rappel-' + e.id + '.ics', [evFor(e)]);
+    });
+    if(fin){
+      const todo = P.etapes.filter(e => { const w = e.quand(fin); return w.due && w.due >= now && !done[e.id]; });
+      if(todo.length > 1){
+        d.querySelector('#pc-steps').insertAdjacentHTML('beforeend',
+          `<p class="sim-links" style="margin-top:12px"><a class="lien pc-ics-all" href="#">📅 Ajouter les ${todo.length} échéances à mon agenda</a>
+           <span class="muted">— fichier créé sur l'appareil, ouvert par votre application d'agenda.</span></p>`);
+        d.querySelector('.pc-ics-all').onclick = ev => {
+          ev.preventDefault();
+          icsDownload('parcours-' + id + '.ics', todo.map(evFor));
+        };
+      }
+    }
   }
   steps();
 }

@@ -449,11 +449,16 @@ function showList(list, title, query){
         </button>`).join('')}</div>`
     : '<p class="muted">Aucune fiche trouvée.</p>';
   const foot = (query && !title && list.length) ? `<p class="reassure">Ce n'est pas ce que vous cherchez ? Reformulez votre demande dans la barre ci-dessus.</p>` : '';
-  // détection d'ÉVÉNEMENT DE VIE : une recherche qui raconte une perte d'emploi propose le
-  // parcours guidé (checklist + échéances) au-dessus des fiches, sans les remplacer.
-  const evt = (query && !title && /perd(re|s|u)?\s+(mon|son)\s+(emploi|travail|boulot|job)|licenci|fin de (cdd|contrat|mission)|rupture conventionnelle|ch[ôo]mage/i.test(query))
-    ? `<a class="evtcard" href="#/parcours/chomage"><b>Parcours guidé : je perds mon emploi</b>
-       <span>Les démarches dans l'ordre, avec vos échéances — inscription, allocation, mutuelle, aides.</span></a>` : '';
+  // détection d'ÉVÉNEMENT DE VIE : une recherche qui raconte l'événement propose le parcours
+  // guidé (checklist + échéances) au-dessus des fiches, sans les remplacer.
+  const EVENEMENTS = [
+    { id:'chomage', re:/perd(re|s|u)?\s+(mon|son)\s+(emploi|travail|boulot|job)|licenci|fin de (cdd|contrat|mission)|rupture conventionnelle|ch[ôo]mage/i,
+      t:'Parcours guidé : je perds mon emploi', s:'Les démarches dans l\'ordre, avec vos échéances — inscription, allocation, mutuelle, aides.' },
+    { id:'naissance', re:/enceinte|grossesse|b[ée]b[ée]|attend(s|ons)? un enfant|accouch|naissance|futur(e)? (papa|maman|parent)/i,
+      t:'Parcours guidé : j\'attends un enfant', s:'De la déclaration de grossesse aux 5 jours pour déclarer la naissance — avec vos échéances.' },
+  ];
+  const ev = (query && !title) ? EVENEMENTS.find(e => e.re.test(query)) : null;
+  const evt = ev ? `<a class="evtcard" href="#/parcours/${ev.id}"><b>${ev.t}</b><span>${ev.s}</span></a>` : '';
   $('#results').innerHTML = evt + ai + head + rows + foot;
   const panel = $('#results .ai');
   if(panel) panel.querySelector('.ai-btn').onclick = () => askAI(query, panel);
