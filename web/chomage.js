@@ -103,6 +103,7 @@ function renderChomage(){
       <p class="pnote">Quelques questions, calcul <b>uniquement sur cet appareil</b> — rien n'est
         transmis. Estimation selon les règles Unédic du <b>${ARE.date}</b> (cas général, hors
         annexes intermittents/expatriés) : seule France Travail calcule votre droit réel.</p>
+      <p class="sim-links">Vue d'ensemble des démarches ? <a class="lien" href="#/parcours/chomage">Parcours guidé « je perds mon emploi »</a></p>
       <div id="cho-flow"></div>
       <div id="cho-res" aria-live="polite"></div>
       <p class="sim-restart"><a class="lien" href="#">Recommencer</a></p>

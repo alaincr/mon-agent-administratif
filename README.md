@@ -115,6 +115,16 @@ probable » localement peut se révéler accessible avec participation, chiffré
 **case par case** (salaire brut d'un bulletin scanné, commune d'un justificatif de domicile —
 résolue en code commune) ; seules ces valeurs chiffrées partent, jamais le nom ni l'adresse.
 
+**Parcours « événements de vie » — `web/parcours.js`** : l'orchestration narrative des briques.
+« Je perds mon emploi » (`#/parcours/chomage`) : une **date pivot** (fin de contrat) → 8 étapes
+ordonnées avec **échéances calculées** (documents à récupérer, inscription France Travail avant
+fin + 12 mois, signalement CAF, portabilité de la mutuelle…), badges d'urgence (dès maintenant /
+avant le… / échéance dépassée / chaque mois), **checklist persistée sur l'appareil**, et à chaque
+étape l'outil déjà présent (fiche, simulateur ARE, cumul, « Mes aides », oracle). La structure est
+**data-driven** : un nouvel événement (naissance, séparation, décès) = une entrée de données. Une
+recherche qui raconte l'événement (« je viens de perdre mon emploi ») fait apparaître le parcours
+au-dessus des fiches.
+
 **Simulateur ciblé chômage (ARE) — `web/chomage.js`, 100 % local** : OpenFisca ne modélise pas le
 calcul SJR→ARE (l'allocation journalière y est une entrée) ; les règles **Unédic du 01/07/2025**
 sont donc codées en clair et datées (SJR réforme 2021 avec plafonnement des jours non travaillés,

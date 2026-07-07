@@ -66,6 +66,7 @@ function render(){                           // applique l'état décrit par l'U
   if(h === '#/profil'){ setView('detail', '#/aide'); renderProfil(); return; }
   if(h === '#/aides'){ setView('detail', '#/aides'); if(window.renderSimu) renderSimu(); return; }   // simulateur « Mes aides » (simu.js)
   if(h === '#/chomage'){ setView('detail', '#/aides'); if(window.renderChomage) renderChomage(); return; }   // simulateur ciblé ARE (chomage.js)
+  if(h.startsWith('#/parcours/')){ setView('detail', '#/aides'); if(window.renderParcours) renderParcours(decodeURIComponent(h.slice(11))); return; }   // événements de vie (parcours.js)
   if(h === '#/coffre'){ setView('detail', '#/aide'); if(window.renderCoffre) renderCoffre(); return; } // coffre 2D-Doc (coffre.js)
   const m = /^#\/(fiche|theme|q)\/(.+)$/.exec(h);
   if(!m){ if($('#q').value) $('#q').value=''; setView('home', '#'); showEmpty(); return; }
@@ -448,7 +449,12 @@ function showList(list, title, query){
         </button>`).join('')}</div>`
     : '<p class="muted">Aucune fiche trouvée.</p>';
   const foot = (query && !title && list.length) ? `<p class="reassure">Ce n'est pas ce que vous cherchez ? Reformulez votre demande dans la barre ci-dessus.</p>` : '';
-  $('#results').innerHTML = ai + head + rows + foot;
+  // détection d'ÉVÉNEMENT DE VIE : une recherche qui raconte une perte d'emploi propose le
+  // parcours guidé (checklist + échéances) au-dessus des fiches, sans les remplacer.
+  const evt = (query && !title && /perd(re|s|u)?\s+(mon|son)\s+(emploi|travail|boulot|job)|licenci|fin de (cdd|contrat|mission)|rupture conventionnelle|ch[ôo]mage/i.test(query))
+    ? `<a class="evtcard" href="#/parcours/chomage"><b>Parcours guidé : je perds mon emploi</b>
+       <span>Les démarches dans l'ordre, avec vos échéances — inscription, allocation, mutuelle, aides.</span></a>` : '';
+  $('#results').innerHTML = evt + ai + head + rows + foot;
   const panel = $('#results .ai');
   if(panel) panel.querySelector('.ai-btn').onclick = () => askAI(query, panel);
   $('#results').querySelectorAll('.subj').forEach(el=> el.onclick=()=>go('fiche', el.dataset.id));
