@@ -20,14 +20,20 @@ function oracleCase(a, extra){
   const senior = a.age === 'senior';
   const birth = { u18:'2010-01-01', u25:'2003-01-01', adult:'1985-01-01', senior:'1955-01-01' }[a.age] || '1985-01-01';
   const nPar = a.couple ? 2 : 1;
+  // mode CHÔMAGE (extra.chomage = ARE mensuelle) : le demandeur perçoit l'ARE (chomage_brut),
+  // l'éventuel conjoint garde un salaire. Hypothèse « régime établi » : ARE sur toute la période.
+  const chom = extra && extra.chomage > 0;
   const incomeVar = senior ? 'retraite_brute' : 'salaire_de_base';
-  // hypothèse : le revenu du foyer = revenus d'activité (ou pension) répartis entre adultes
-  const perAdult = (a.revenus || 0) / nPar;
+  // en mode chômage, a.revenus = salaire de l'ÉVENTUEL conjoint (entier) ; sinon revenu du foyer réparti
+  const perAdult = chom ? (a.revenus || 0) : (a.revenus || 0) / nPar;
   const individus = {}, parents = [];
   for(let p=0; p<nPar; p++){
     const id = 'p' + p; parents.push(id);
-    const inc = {}; mm.forEach(m => inc[m] = perAdult);
-    individus[id] = { [incomeVar]: inc, date_naissance: { ETERNITY: birth } };
+    const inc = {};
+    const v = (chom && p === 0) ? 'chomage_brut' : incomeVar;
+    const amount = (chom && p === 0) ? extra.chomage : perAdult;
+    mm.forEach(m => inc[m] = amount);
+    individus[id] = { [v]: inc, date_naissance: { ETERNITY: birth } };
     if(p === 0 && a.handicap && a.handicap !== 'non'){
       individus[id].aah = { [PER]: null };
       individus[id].taux_incapacite = { [PER]: a.handicap === '80' ? 0.85 : 0.65 };
@@ -79,8 +85,9 @@ async function oracleCompute(a, extra){
 }
 
 // ----- UI : panneau « Montants précis » sous les résultats du tri local -----
-function attachOracle(host, a){
+function attachOracle(host, a, opts){
   if(!host || host.querySelector('.orc')) return;
+  const chomage = opts && opts.chomage > 0 ? Math.round(opts.chomage) : 0;   // ARE mensuelle estimée
   const locataire = a.logement === 'locataire';
   // BRANCHEMENT DU COFFRE (opt-in, case par case) : seules des VALEURS chiffrées certifiées
   // peuvent partir (salaire brut d'un bulletin, commune d'un justificatif) — jamais nom/adresse.
@@ -89,12 +96,18 @@ function attachOracle(host, a){
   const el = document.createElement('div');
   el.className = 'orc';
   el.innerHTML = `
-    <h3 class="sim-rt">Montants précis (calcul officiel)</h3>
-    <p class="orc-note">Pour aller au-delà de l'estimation : le <b>moteur officiel OpenFisca</b> peut
+    <h3 class="sim-rt">${chomage ? 'Mes aides pendant le chômage (calcul officiel)' : 'Montants précis (calcul officiel)'}</h3>
+    <p class="orc-note">${chomage
+      ? `Le <b>moteur officiel OpenFisca</b> peut calculer vos aides <b>une fois au chômage</b>, avec
+         votre ARE estimée (<b>${chomage.toLocaleString('fr-FR')} €/mois</b>) comme revenu${a.couple ? ' et le salaire de votre conjoint' : ''}.
+         Votre <b>situation chiffrée</b>${locataire ? ' (dont loyer et commune)' : ''} sera envoyée <b>anonymement</b>
+         à notre serveur de calcul — <b>jamais votre identité</b>, rien n'est conservé. Hypothèse :
+         chômage « installé » (régime établi), montants susceptibles d'évoluer les premiers mois.`
+      : `Pour aller au-delà de l'estimation : le <b>moteur officiel OpenFisca</b> peut
       calculer les <b>montants exacts</b> de vos aides. Votre <b>situation chiffrée</b> (composition du
       foyer, tranche d'âge, revenus${locataire ? ', loyer et commune' : ''}${(cSal||cCom) ? ', et les valeurs de votre coffre si vous les cochez' : ''})
       sera envoyée <b>anonymement</b> à notre serveur de calcul — <b>jamais votre identité</b>, et rien
-      n'est conservé. Hypothèse : revenus d'activité salariée${a.age==='senior' ? ' (pension de retraite)' : ''}, stables sur 3 ans.</p>
+      n'est conservé. Hypothèse : revenus d'activité salariée${a.age==='senior' ? ' (pension de retraite)' : ''}, stables sur 3 ans.`}</p>
     ${(cSal || cCom) ? `<div class="orc-coffre">
       <p class="orc-clab">📦 Depuis votre coffre (certifié) :</p>
       ${cSal ? `<label class="orc-ck"><input type="checkbox" class="orc-usesal" checked>
@@ -148,6 +161,7 @@ function attachOracle(host, a){
       extra.depcom = depcom;
       if(!extra.loyer){ out.innerHTML = '<span class="muted">Indiquez votre loyer pour calculer l\'aide au logement (ou laissez 0 pour les autres aides).</span>'; }
     }
+    if(chomage) extra.chomage = chomage;                          // ARE comme revenu du demandeur
     // salaire brut certifié coché → remplace le revenu déclaré (plus fiable : c'est du brut)
     const useSal = el.querySelector('.orc-usesal');
     const a2 = (useSal && useSal.checked && cSal) ? Object.assign({}, a, { revenus: cSal.brut }) : a;

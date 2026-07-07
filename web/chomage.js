@@ -22,6 +22,18 @@ const ARE = {
   nonTravaillePlafond: 1.75, // jours non travaillés retenus ≤ 75 % des jours travaillés
 };
 
+// CUMUL ARE + ACTIVITÉ RÉDUITE (règle Unédic) : allocation du mois = ARE mensuelle − 70 % du brut
+// repris, sans que salaire + allocation ne dépassent le salaire mensuel de référence (SJR × 30,4).
+// Les jours non indemnisés ne sont pas perdus : ils PROLONGENT la durée des droits d'autant.
+function areCumul(r, brutRepris){
+  const ref = r.sjr * 30.4;                       // salaire mensuel de référence
+  let alloc = Math.max(0, r.areMois - 0.7 * brutRepris);
+  alloc = Math.min(alloc, Math.max(0, ref - brutRepris));
+  const joursVerses = alloc / r.areJour;          // jours d'ARE réellement consommés dans le mois
+  return { alloc, total: alloc + brutRepris,
+           prolongeParMois: Math.max(0, 30.4 - joursVerses) };   // jours de droits préservés
+}
+
 // entrées → résultat. mois = mois travaillés dans la fenêtre ; couverts = étendue calendaire
 // (mois du 1er contrat au dernier) si les périodes ne sont pas continues.
 function areCalc({ motif, age, brut, mois, couverts }){
@@ -156,7 +168,49 @@ function renderChomage(){
         selon le montant) s'appliquent. Hypothèses : cas général, temps plein régulier, jours non travaillés
         plafonnés selon la règle 2021, coefficient de durée « contracyclique » ×0,75. <b>Ne vaut pas décision</b> —
         faites la simulation officielle France Travail avec vos bulletins réels.</p>
-      ${links}</div>`;
+      ${links}</div>
+      <div class="sim-card">
+        <div class="sim-head"><b>Et si je reprends une activité partielle ?</b></div>
+        <p class="sim-why">L'ARE se <b>cumule</b> avec un salaire réduit (70 % du brut repris est déduit) et
+          les jours non versés <b>prolongent vos droits</b>. Indiquez un salaire brut mensuel envisagé :</p>
+        <div class="sim-eur"><input class="cho-cumul" type="number" inputmode="decimal" min="0" placeholder="ex. 800"><button class="btn act" type="button">Voir</button></div>
+        <div class="cho-cumul-out" aria-live="polite"></div>
+      </div>
+      <div class="cho-oracle"></div>`;
+    // cumul activité réduite : calcul immédiat, local
+    const ci = host.querySelector('.cho-cumul'), co = host.querySelector('.cho-cumul-out');
+    const cumul = () => {
+      const b = parseFloat(String(ci.value).replace(',', '.'));
+      if(isNaN(b) || b < 0){ ci.focus(); return; }
+      const c = areCumul(r, b);
+      co.innerHTML = c.alloc < 0.5
+        ? `<p class="sim-why">À ce salaire, l'allocation du mois serait <b>nulle</b> (le cumul dépasse votre
+           salaire de référence) — vos droits restent intégralement préservés pour plus tard.</p>`
+        : `<table class="orc-t">
+             <tr><td>Salaire repris (brut)</td><td class="orc-v">${Math.round(b).toLocaleString('fr-FR')} €</td></tr>
+             <tr><td>+ Allocation maintenue</td><td class="orc-v">${Math.round(c.alloc).toLocaleString('fr-FR')} €</td></tr>
+             <tr><td><b>Total mensuel (brut)</b></td><td class="orc-v">${Math.round(c.total).toLocaleString('fr-FR')} €</td></tr>
+           </table>
+           <p class="sim-why">soit <b>${Math.round(c.total - r.areMois).toLocaleString('fr-FR')} € de plus</b> que l'ARE seule,
+           et ≈ ${Math.round(c.prolongeParMois)} jours de droits préservés chaque mois (durée prolongée d'autant).</p>`;
+    };
+    host.querySelector('.sim-eur button').onclick = cumul;
+    ci.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); cumul(); } });
+    // pont vers l'oracle : « mes aides pendant le chômage » (ARE = revenu, consentement dans le panneau)
+    if(window.attachOracle){
+      const saved = (window.getSimu ? getSimu() : {}) || {};
+      const a = {
+        couple: saved.couple === true, enfants: saved.enfants || 0,
+        age: 'adult', handicap: saved.handicap || 'non', residence: saved.residence !== false,
+        logement: saved.logement || 'locataire',
+        revenus: 0,                                    // mode chômage : salaire du conjoint (0 par défaut)
+      };
+      const note = (saved.couple !== undefined || saved.enfants !== undefined)
+        ? '<p class="sim-hint">Composition du foyer reprise de « Mes aides »' + (a.couple ? ' (en couple — le salaire du conjoint peut être coché depuis le coffre ou laissé à 0)' : '') + '.</p>'
+        : '<p class="sim-hint">Foyer supposé : personne seule, sans enfant — faites d\'abord « Mes aides » pour un calcul sur votre vraie situation.</p>';
+      host.querySelector('.cho-oracle').innerHTML = note;
+      attachOracle(host.querySelector('.cho-oracle'), a, { chomage: r.areMois });
+    }
   }
   step();
 }

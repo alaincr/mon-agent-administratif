@@ -122,7 +122,11 @@ sont donc codées en clair et datées (SJR réforme 2021 avec plafonnement des j
 coefficient contracyclique ×0,75 et bornes d'âge 53/55 ans). 4 à 6 questions, salaire brut
 **pré-remplissable depuis un bulletin certifié du coffre**, verdict + allocation journalière/
 mensuelle brute + durée, renvoi France Travail. Accessible via `#/chomage` et depuis les
-résultats de « Mes aides ».
+résultats de « Mes aides ». Deux prolongements : le **cumul ARE + activité réduite** (règle des
+70 %, plafond au salaire de référence, jours de droits préservés — calcul local immédiat), et
+**« mes aides pendant le chômage »** : l'ARE estimée est injectée comme `chomage_brut` dans
+l'oracle OpenFisca (même consentement), qui recalcule RSA, aide au logement, CSS… en régime de
+chômage établi — où l'on découvre par exemple qu'une CSS payante redevient gratuite.
 
 ### 5. « Mon coffre » : scan 2D-Doc et données certifiées — `web/coffre.js`
 
