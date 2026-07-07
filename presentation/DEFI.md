@@ -20,9 +20,12 @@ Alain Crawford <!-- à confirmer : nom de l'équipe ou du porteur -->
 - **Garde-fou humain** — l'application n'effectue aucune démarche à votre place ; toute ouverture de téléservice demande une confirmation explicite.
 - **Voix** — dictée locale (Whisper) et lecture à voix haute (synthèse vocale du système), pour l'accessibilité.
 - **Où s'adresser** — recherche du guichet réel (mairie, France Services…) via l'API Annuaire de l'administration.
-- **Explications par assistant local** — un petit LLM (WebGPU, dans le navigateur) explique une démarche en s'appuyant uniquement sur la fiche, sans rien inventer.
+- **Explications par assistant local** — un LLM (Gemma 3, WebGPU ; Apple Intelligence en natif) explique une démarche en s'appuyant uniquement sur la fiche, réponse citée et vérifiée, avec conversation de suivi.
+- **« Mes aides » — simuler ses droits** — un questionnaire adaptatif (une question posée seulement si elle sert) estime l'éligibilité à 8 prestations (RSA, prime d'activité, aides au logement, AAH, ASPA, allocations familiales, ARS, CSS). Les **seuils viennent d'OpenFisca-France**, le moteur officiel des règles socio-fiscales ; un 2ᵉ étage optionnel envoie un **cas-type anonyme** (sur consentement, jamais l'identité) à un oracle OpenFisca hébergé pour le **montant exact**. Simulateur ciblé chômage (ARE, cumul, aides pendant le chômage).
+- **Le coffre — « Dites-le-nous une fois » côté citoyen** — l'usager scanne le code **2D-Doc** de ses documents officiels (avis d'imposition, justificatif de domicile, bulletin de salaire) ; l'app **vérifie la signature** hors-ligne et réutilise les données certifiées pour pré-remplir les simulateurs, sans double saisie.
+- **Parcours « événements de vie »** — « je perds mon emploi », « j'attends un enfant » : à partir d'une date pivot, l'app calcule les **échéances**, enchaîne les bonnes étapes (chacune reliée à sa fiche/simulateur) et exporte des **rappels d'agenda (.ics)**.
 
-**Le déroulé technique.** Le jeu « Vos droits » de la DILA (schéma 3.5) est transformé en index de recherche et en parcours structurés (arbres de cas/étapes, pièces, téléservices, guichets) couvrant **2 908 fiches** sur **11 thèmes**. Toute la chaîne s'exécute côté client : BM25 en JavaScript pur, embeddings *multilingual-e5-small* via Transformers.js (WASM, quantifié q8), assistant *Qwen2.5-0.5B* via WebLLM/WebGPU, dictée *Whisper*. Une garde de confiance à deux seuils (voisin sémantique + ancrage lexical) évite de répondre faux. L'empaquetage en apps natives (Capacitor) embarque corpus et modèles pour un **hors-ligne réellement garanti**. Confidentialité par conception : CSP stricte, exécution 100 % locale, étiquette « aucune donnée collectée ».
+**Le déroulé technique.** Le jeu « Vos droits » de la DILA (schéma 3.5) est transformé en index de recherche et en parcours structurés (arbres de cas/étapes, pièces, téléservices, guichets) couvrant **2 908 fiches** sur **11 thèmes**. Toute la chaîne s'exécute côté client : BM25 en JavaScript pur, embeddings *multilingual-e5-small* via Transformers.js (WASM), assistant *Gemma 3 1B* (repli *Qwen2.5-0.5B*) via WebLLM/WebGPU, dictée *Whisper* — le tout **auto-hébergé** (0 requête ML tierce au runtime). Les seuils des simulateurs sont **calculés au build par OpenFisca-France** ; le calcul exact optionnel passe par une **API Web OpenFisca hébergée** (Space docker dédié), qui ne reçoit que des cas-types anonymes. La vérification 2D-Doc repose sur ECDSA/WebCrypto contre les clés publiques ANTS. Une garde de confiance à deux seuils (voisin sémantique + ancrage lexical) évite de répondre faux. L'empaquetage en apps natives (Capacitor) embarque corpus et modèles pour un **hors-ligne réellement garanti** ; en iOS, l'assistant passe par FoundationModels. Confidentialité par conception : CSP stricte, exécution 100 % locale, étiquette « aucune donnée collectée ».
 
 **Principes.** Vos données ne sortent pas de l'appareil. L'app vous outille, vous décidez. Non officiel et transparent : aucun insigne d'État, lien visible vers la source officielle.
 
@@ -35,7 +38,8 @@ Alain Crawford <!-- à confirmer : nom de l'équipe ou du porteur -->
 ### Ressources utilisées
 Cochez les ressources utilisées en remplaçant `[ ]` par `[x]`.
 
-- [ ] `openfisca-france-parameters` — Base de données de paramètres ✺ OpenFisca
+- [x] `openfisca-france-parameters` — Base de données de paramètres ✺ OpenFisca <!-- seuils « Mes aides » calculés au build + oracle de calcul exact -->
+- [x] `an-et-co-serveur-mcp-regroupement-toutes-donnees` — Serveur MCP OpenFisca (LexImpact) utilisé comme oracle de développement
 - [ ] `an-dossiers-legislatifs` — Dossiers législatifs de l'Assemblée nationale (législature courante) ✺ Assemblée nationale
 - [ ] `an-amendements-xvii` — Amendements déposés à l'Assemblée nationale (législature actuelle) ✺ Assemblée nationale
 - [ ] `an-comptes-rendus` — Comptes rendus de la séance publique à l'Assemblée nationale (législature actuelle) ✺ Assemblée nationale
@@ -66,12 +70,13 @@ Cochez les ressources utilisées en remplaçant `[ ]` par `[x]`.
 <!-- Note : ce projet s'appuie sur les fiches « Vos droits » de service-public.fr (DILA, Licence Ouverte 2.0). Si vous avez utilisé la base/API/MCP unifiée « Service Public », cochez la ou les entrées `an-et-co-…-regroupement-toutes-donnees` correspondantes. -->
 
 ### Galerie
-- ![Diapositive 1 — Vos démarches, comprises et préparées sur votre smartphone (2 908 fiches, 100 % local et hors-ligne)](images/slide-1.png)
-- ![Diapositive 2 — Comprendre l'intention : recherche hybride (BM25 + e5) et reformulation active](images/slide-2.png)
-- ![Diapositive 3 — Préparer sa démarche : assistant local, déroulé pas à pas, tout reste sur l'appareil](images/slide-3.png)
-- ![Reformulation active : la recherche « appendicite » propose des démarches précises à valider](images/image-1.png)
-- ![Fiche d'une démarche : explication par l'assistant local, lecture vocale et déroulé pas à pas](images/image-2.png)
-- ![Application native sur iPhone (simulateur) : écran d'accueil, 2 908 fiches disponibles en hors-ligne](images/simulateur-iphone.png)
+- ![Diapositives de présentation (6 pages) — état actuel du démonstrateur](diapositives.pdf)
+- ![Application native sur iPhone : écran d'accueil, 2 908 fiches disponibles hors-ligne](images/simulateur-iphone.png)
+- ![Recherche & reformulation : « appendicite » propose des démarches précises à valider](images/image-1.png)
+- ![« Mes aides » : tri d'éligibilité aux prestations, seuils OpenFisca](images/screen-aides.png)
+- ![Le coffre : document 2D-Doc scanné, signature vérifiée, données certifiées réutilisées](images/screen-coffre.png)
+- ![Parcours « j'attends un enfant » : démarches ordonnées avec échéances calculées](images/screen-parcours.png)
+- ![Fiche d'une démarche : explication par l'assistant local, lecture vocale, déroulé pas à pas](images/image-2.png)
 
 ### Documents
 - [Diapositives de présentation (PDF)](docs/diapositives.pdf)
