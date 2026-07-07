@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "openfisca": {
+      "command": "uv",
+      "args": ["run", "--project", "/Users/alaincrawford/service_public/tools/openfisca-france-python-mcp", "openfisca-france-python-mcp"],
+      "_comment": "Oracle OpenFisca-France (LexImpact) : compute_variables, get_parameter, recettes de cas-types. Cloner git.leximpact.dev/leximpact/exploration/openfisca-france-python-mcp dans tools/ pour l'activer (sessions interactives)."
+    }
+  }
+}

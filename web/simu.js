@@ -7,7 +7,16 @@
 // est presque ouvert). SEUILS INDICATIFS (barèmes avril 2025, métropole) : verdicts prudents
 // (« probable / à vérifier / peu probable »), jamais un montant promis ; chaque carte renvoie vers
 // la fiche locale + le simulateur officiel.
-const SIMU_BAREME_DATE = 'avril 2025';
+// Seuils : calculés par OpenFisca-France (moteur officiel des règles socio-fiscales) via
+// scripts/build_simu_bareme.py → web/simu-bareme.js (montants forfaitaires RSA exacts par foyer,
+// frontières réelles d'annulation de la prime d'activité, plafonds ASPA/AAH/CSS/ARS datés).
+// Repli sur des constantes (avril 2025) si le barème généré est absent.
+const BAREME = (typeof SIMU_BAREME !== 'undefined') ? SIMU_BAREME : null;
+const SIMU_BAREME_DATE = BAREME
+  ? 'OpenFisca-France ' + BAREME.openfisca_france + ', période ' + BAREME.periode
+  : 'avril 2025';
+// clé de configuration du foyer pour les tables du barème : s0..s3 / c0..c3
+function baremeKey(a){ return (a.couple ? 'c' : 's') + Math.min(a.enfants, 3); }
 const SIMU_KEY = 'sp_simu_v2';                    // réponses mémorisées sur l'appareil uniquement
 
 function getSimu(){ try{ return JSON.parse(localStorage.getItem(SIMU_KEY)||'{}'); }catch(e){ return {}; } }
@@ -68,7 +77,10 @@ const SIMU_RULES = [
       }
       if(m = miss(a,'couple','enfants','revenus')) return m;
       const isole = !a.couple && a.enfants > 0;
-      const forfait = 646.52 * foyerScale(a) * (isole ? 1.28 : 1);   // majoration parent isolé (approx.)
+      const forfait = BAREME && BAREME.rsa_socle
+        ? (isole && BAREME.rsa_socle_isole ? BAREME.rsa_socle_isole[baremeKey(a)] : BAREME.rsa_socle[baremeKey(a)])
+          || BAREME.rsa_socle[baremeKey(a)]
+        : 646.52 * foyerScale(a) * (isole ? 1.28 : 1);               // repli (avril 2025)
       if(a.revenus >= forfait*1.25)
         return { v:'non', why:`Vos ressources dépassent nettement le montant forfaitaire indicatif (≈ ${fmtEur(forfait)}/mois pour votre foyer).` };
       if(m = miss(a,'residence')) return m;                          // demandée seulement si le droit est plausible
@@ -84,7 +96,8 @@ const SIMU_RULES = [
       if(m = miss(a,'age')) return m;
       if(a.age === 'u18') return { v:'non', why:'Il faut avoir au moins 18 ans.' };
       if(m = miss(a,'couple','enfants','revenus')) return m;
-      const plafond = 2000 * foyerScale(a);          // ordre de grandeur (≈ 1,5 SMIC net, personne seule)
+      // frontière RÉELLE d'annulation de la prime (salaire où ppa→0, calcul OpenFisca complet)
+      const plafond = (BAREME && BAREME.ppa_seuil && BAREME.ppa_seuil[baremeKey(a)]) || 2000 * foyerScale(a);
       if(a.revenus >= plafond*1.2)
         return { v:'non', why:'Les ressources du foyer semblent dépasser le plafond indicatif.' };
       if(m = miss(a,'revact')) return m;
@@ -124,7 +137,7 @@ const SIMU_RULES = [
       if(a.handicap !== '80')
         return { v:'peut', why:'Taux entre 50 et 79 % : il faut en plus une restriction substantielle et durable d\'accès à l\'emploi, appréciée par la MDPH.' };
       if(m = miss(a,'revact')) return m;             // AAH déconjugalisée : revenus PERSONNELS
-      return a.revact < 1034
+      return a.revact < ((BAREME && BAREME.aah_mois) || 1034)
         ? { v:'oui',  why:'Taux d\'incapacité ≥ 80 % et revenus personnels sous le plafond indicatif : droit probable (décision MDPH requise).' }
         : { v:'peut', why:'Taux ≥ 80 % mais revenus personnels proches ou au-dessus du plafond : l\'AAH peut être réduite ou différentielle.' };
     }},
@@ -135,7 +148,9 @@ const SIMU_RULES = [
       if(m = miss(a,'age')) return m;
       if(a.age !== 'senior') return { v:null };
       if(m = miss(a,'couple','revenus')) return m;
-      const plafond = a.couple ? 1605.73 : 1034.28;
+      const plafond = BAREME
+        ? (a.couple ? BAREME.aspa_couple_mois : BAREME.aspa_seul_mois)
+        : (a.couple ? 1605.73 : 1034.28);
       if(a.revenus < plafond)
         return { v:'oui', why:`Vos ressources (${fmtEur(a.revenus)}/mois) semblent sous le plafond ASPA (${fmtEur(plafond)} ${a.couple?'pour un couple':'pour une personne seule'}).` };
       if(a.revenus < plafond*1.1)
@@ -160,7 +175,10 @@ const SIMU_RULES = [
       if(m = miss(a,'scolarises')) return m;
       if(a.scolarises === 0) return { v:null };
       if(m = miss(a,'revenus')) return m;
-      const plafondAn = 27141 + 6264*Math.max(a.scolarises-1,0);   // plafond annuel indicatif
+      // formule officielle : plafond de base × (1 + majoration × nb d'enfants À CHARGE)
+      const plafondAn = BAREME && BAREME.ars_plafond_an
+        ? BAREME.ars_plafond_an * (1 + (BAREME.ars_maj_enfant || 0.3) * a.enfants)
+        : 27141 + 6264*Math.max(a.scolarises-1,0);                 // repli (2025)
       const revAn = a.revenus*12;
       if(revAn < plafondAn)
         return { v:'oui', why:`Enfant(s) scolarisé(s) de 6 à 18 ans et revenus annuels estimés (${fmtEur(revAn)}) sous le plafond indicatif (${fmtEur(plafondAn)}).` };
@@ -173,8 +191,19 @@ const SIMU_RULES = [
     test(a){
       let m;
       if(m = miss(a,'couple','enfants','revenus')) return m;
-      const sc = foyerScale(a);
-      const gratuit = 847*sc, participation = 1143*sc;             // plafonds mensuels indicatifs
+      // échelle de foyer OFFICIELLE de la CSS (par personne : 2e +50 %, 3e-4e +30 %, 5e+ +40 %)
+      let gratuit, participation;
+      if(BAREME && BAREME.css_plafond_an){
+        const n = 1 + (a.couple ? 1 : 0) + a.enfants;
+        const sc = 1 + (n >= 2 ? BAREME.css_coeff_p2 : 0)
+                 + BAREME.css_coeff_p3_p4 * Math.max(Math.min(n, 4) - 2, 0)
+                 + BAREME.css_coeff_p5 * Math.max(n - 4, 0);
+        gratuit = BAREME.css_plafond_an / 12 * sc;
+        participation = gratuit * (BAREME.css_facteur_participation || 1.35);
+      } else {
+        const sc = foyerScale(a);
+        gratuit = 847*sc; participation = 1143*sc;                 // repli (2025)
+      }
       if(a.revenus < gratuit)
         return { v:'oui', why:`Ressources (${fmtEur(a.revenus)}/mois) sous le plafond indicatif (${fmtEur(gratuit)}) : CSS probablement gratuite.` };
       if(a.revenus < participation)

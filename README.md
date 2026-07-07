@@ -76,7 +76,7 @@ python3 -m http.server 8765 --directory web
   Sur le Space Hugging Face (quota 1 Go), une **sonde** bascule Gemma vers un repo modèle HF à nous
   ([alcrawfo/gemma3-1b-it-q4f16_1-MLC-web](https://huggingface.co/alcrawfo/gemma3-1b-it-q4f16_1-MLC-web)) ; en local/natif, tout reste sur l'origine.
 
-### 4. Simulateur « Mes aides » (moteur de règles local) — `web/simu.js`
+### 4. Simulateur « Mes aides » (moteur de règles local, seuils OpenFisca) — `web/simu.js`
 
 Éligibilité **indicative** à 8 prestations (RSA, prime d'activité, APL/ALS/ALF, AAH, ASPA,
 allocations familiales, ARS, CSS), sans réseau. **Minimisation des données** : chaque règle
@@ -84,7 +84,21 @@ s'évalue sur des réponses partielles et déclare ce qui lui manque (`{need:[ch
 questionnaire ne pose une question **que si une aide encore indécise en a besoin** (propriétaire →
 aides au logement tranchées à la 2ᵉ question, sans les revenus ; âge en tranches ; résidence
 demandée seulement si un droit est plausible). Verdicts prudents (probable / à vérifier / peu
-probable), seuils datés (avril 2025), renvoi systématique vers les simulateurs officiels.
+probable), renvoi systématique vers les simulateurs officiels.
+
+**Les seuils sont calculés par [OpenFisca-France](https://github.com/openfisca/openfisca-france)**
+(le moteur officiel des règles socio-fiscales) via `scripts/build_simu_bareme.py` →
+`web/simu-bareme.js`, daté et traçable : montants forfaitaires **RSA exacts** par composition de
+foyer (variables `rsa_socle` / `rsa_socle_majore`, majoration parent isolé comprise), **frontières
+réelles d'annulation de la prime d'activité** (cas-types **vectorisés** — N foyers répliqués en une
+simulation, technique [QuelImpact](https://github.com/theosorus/QuelImpact)), plafonds
+ASPA/AAH/CSS/ARS lus dans les paramètres officiels avec leurs échelles de foyer exactes. Le
+simulateur reste 100 % local : OpenFisca tourne **au build**, pas chez l'usager. Effet mesuré : la
+frontière réelle de la prime d'activité (2 600 €/mois, célibataire) détecte des droits que
+l'approximation « 1,5 SMIC » ratait. Un serveur **MCP OpenFisca**
+([LexImpact](https://git.leximpact.dev/leximpact/exploration/openfisca-france-python-mcp)) est
+référencé dans `.mcp.json` comme oracle de développement (calculs de cas-types, paramètres,
+recettes).
 
 ### 5. « Mon coffre » : scan 2D-Doc et données certifiées — `web/coffre.js`
 
