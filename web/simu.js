@@ -334,5 +334,7 @@ function simuFinish(d, evals){
     `<h3 class="sim-rt">Résultat indicatif</h3>
      <p class="sim-warn">⚠ <b>Estimation locale et indicative</b> (seuils ${SIMU_BAREME_DATE}, hors majorations et cas particuliers) — elle ne vaut pas décision : seul l'organisme compétent (CAF/MSA, CPAM, Carsat, MDPH…) ouvre un droit. Vérifiez sur <a class="lien" href="https://www.mesdroitssociaux.gouv.fr/" target="_blank" rel="noopener noreferrer">mesdroitssociaux.gouv.fr ↗</a> (simulateur officiel, toutes aides).</p>`
     + res.map(e => simuCardHtml(e.r, e.out)).join('');
+  // 2e étage optionnel : montants exacts par l'oracle OpenFisca (consentement explicite requis)
+  if(window.attachOracle && res.some(e => e.out.v !== 'non')) attachOracle(host, simuNorm(simAnswers));
   host.scrollIntoView({ block:'nearest', behavior:'smooth' });
 }

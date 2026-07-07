@@ -100,6 +100,17 @@ l'approximation « 1,5 SMIC » ratait. Un serveur **MCP OpenFisca**
 référencé dans `.mcp.json` comme oracle de développement (calculs de cas-types, paramètres,
 recettes).
 
+**2ᵉ étage — montants exacts (`web/oracle.js`)** : après le tri local, l'usager peut demander les
+**montants précis** à un **oracle OpenFisca hébergé** — l'API Web officielle (`openfisca serve`)
+dans un Space docker dédié ([alcrawfo/openfisca-oracle](https://huggingface.co/spaces/alcrawfo/openfisca-oracle)),
+sans état, AGPL. Contrat de confidentialité tenu par construction : le calcul exact n'a lieu
+qu'après **consentement explicite** (« j'accepte l'envoi anonyme »), seul un **cas-type chiffré**
+part (composition du foyer, tranche d'âge, revenus — jamais l'identité ni le coffre) ; refus =
+rien ne quitte l'appareil et le tri local reste. Pour l'aide au logement, deux entrées ciblées
+(loyer + commune, zone résolue via geo.api.gouv.fr) suffisent à obtenir le montant mensuel exact —
+le calcul que le tri local ne peut pas faire. L'oracle affine aussi le tri : une CSS « peu
+probable » localement peut se révéler accessible avec participation, chiffrée au euro près.
+
 ### 5. « Mon coffre » : scan 2D-Doc et données certifiées — `web/coffre.js`
 
 Le **« Dites-le-nous une fois » inversé** : l'usager scanne le code **2D-Doc** (DataMatrix signé,
