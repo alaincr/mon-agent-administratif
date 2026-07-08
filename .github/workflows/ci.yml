@@ -1,0 +1,21 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # syntaxe de tout le code web + logique métier (simu, ARE, parcours, déduction)
+      - name: Vérification de syntaxe
+        run: for f in web/*.js; do node --check "$f"; done
+      - name: Tests de logique métier
+        run: node tests/run-tests.mjs

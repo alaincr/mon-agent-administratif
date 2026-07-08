@@ -9,6 +9,13 @@
 // - hypothèse simplificatrice affichée : revenus d'activité salariée (pension si retraité),
 //   constants sur 36 mois — c'est une ESTIMATION sur cas-type, pas une décision.
 const ORACLE_URL = 'https://alcrawfo-openfisca-oracle.hf.space';
+// Préchauffage : le Space gratuit s'endort ; un GET anodin au moment où l'usager entame le
+// questionnaire masque le réveil (~30 s) s'il demande ensuite le calcul exact. Aucune donnée.
+let _warmed = false;
+function warmOracle(){
+  if(_warmed) return; _warmed = true;
+  try{ fetch(ORACLE_URL + '/spec', { mode:'cors', cache:'no-store' }).catch(()=>{}); }catch(e){}
+}
 
 // réponses du questionnaire local (simuNorm) → cas-type OpenFisca anonyme
 function oracleCase(a, extra){

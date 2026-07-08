@@ -1,0 +1,46 @@
+name: Fraîcheur du barème OpenFisca
+
+# Les seuils de « Mes aides » (web/simu-bareme.js) sont calculés par OpenFisca-France.
+# Chaque mois, on les recalcule pour la période courante : si une revalorisation a eu lieu
+# (avril, juillet…) ou si openfisca-france a été mis à jour, une PR est ouverte avec le diff —
+# relue par un humain, jamais fusionnée en silence.
+on:
+  schedule:
+    - cron: '17 6 5 * *'      # le 5 de chaque mois à 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bareme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer OpenFisca-France
+        run: pip install --quiet openfisca-france numpy
+      - name: Recalculer le barème (période courante)
+        run: python scripts/build_simu_bareme.py
+      - name: Vérifier la logique métier avec le nouveau barème
+        run: node tests/run-tests.mjs
+      - name: Ouvrir une PR si les seuils ont changé
+        uses: peter-evans/create-pull-request@v6
+        with:
+          add-paths: web/simu-bareme.js
+          branch: bareme-openfisca
+          commit-message: 'Barème OpenFisca recalculé (période courante)'
+          title: 'Mise à jour du barème OpenFisca (« Mes aides »)'
+          body: |
+            Recalcul mensuel automatique des seuils de « Mes aides » par OpenFisca-France
+            (`scripts/build_simu_bareme.py`). Ce diff signifie qu'une **revalorisation** est
+            entrée en vigueur ou qu'`openfisca-france` a été mis à jour.
+
+            Les tests de logique métier (`tests/run-tests.mjs`) passent avec ces valeurs.
+            **À relire puis fusionner** — et redéployer `web/` sur le Space.

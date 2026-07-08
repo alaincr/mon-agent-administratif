@@ -1,6 +1,6 @@
 // Service worker : cache l'app + l'index ; met en cache les skills à la demande.
 const CACHE = 'sp-local-v1';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'simu-bareme.js', 'simu.js', 'oracle.js', 'chomage.js', 'parcours.js', '2ddoc-spec.js', 'coffre.js', 'manifest.webmanifest',
+const SHELL = ['./', 'index.html', 'style.css', 'deduce.js', 'app.js', 'simu-bareme.js', 'simu.js', 'oracle.js', 'chomage.js', 'parcours.js', '2ddoc-spec.js', 'coffre.js', 'manifest.webmanifest',
                'icon.svg', 'data/fiches.json', 'data/themes.json'];
 
 self.addEventListener('install', e => {

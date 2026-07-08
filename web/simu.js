@@ -242,12 +242,25 @@ let simAnswers = {};
 function renderSimu(){
   const d = document.querySelector('#detail');
   simAnswers = getSimu();
+  if(window.warmOracle) warmOracle();                       // réveille l'oracle pendant le questionnaire
+  // pré-remplissage DÉDUIT de la phrase de recherche (éphémère, consommé une fois) — seulement
+  // si aucune réponse déjà mémorisée : le déclaré de l'usager prime toujours sur le déduit.
+  let prefill = null;
+  if(window.deduceTake && Object.keys(simAnswers).length === 0){
+    const p = deduceTake(['couple','enfants','age','logement','activite']);   // laisse motif/ageAns au chômage
+    if(p && p.facts){
+      ['couple','enfants','age','logement','activite'].forEach(k => { if(p.facts[k] !== undefined) simAnswers[k] = p.facts[k]; });
+      if(Object.keys(simAnswers).length){ setSimu(simAnswers); prefill = p; }
+    }
+  }
   const back = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
   d.innerHTML = `
     <div class="dnav"><button class="back" type="button">${back}<span>Retour</span></button><span class="dt">Mes aides</span></div>
     <div class="dbody">
       <h2>Ai-je droit à des aides ?</h2>
       <p class="pnote">Quelques questions, <b>une à la fois — uniquement celles qui servent</b> à trancher les aides. Tout est calculé <b>sur cet appareil</b>, rien n'est transmis. Résultat indicatif : la décision appartient aux organismes (CAF, CPAM, Carsat…).</p>
+      ${prefill ? `<p class="ded-note">✓ Pré-rempli d'après votre demande (« ${esc(prefill.q.slice(0,60))}${prefill.q.length>60?'…':''} ») :
+        <b>${esc(prefill.labels.join(' · '))}</b> — <a class="lien ded-clear" href="#">ce n'est pas ça, tout effacer</a></p>` : ''}
       <div id="sim-flow"></div>
       <div id="sim-live" class="sim-live" aria-live="polite"></div>
       <div id="sim-res" class="sim-res" aria-live="polite"></div>
@@ -258,6 +271,13 @@ function renderSimu(){
     e.preventDefault();
     simAnswers = {}; setSimu(simAnswers);
     d.querySelector('#sim-res').innerHTML = ''; d.querySelector('#sim-live').innerHTML = '';
+    simuStep(d);
+  };
+  const dc = d.querySelector('.ded-clear');
+  if(dc) dc.onclick = e => {
+    e.preventDefault();
+    simAnswers = {}; setSimu(simAnswers);
+    d.querySelector('.ded-note').remove();
     simuStep(d);
   };
   simuStep(d);

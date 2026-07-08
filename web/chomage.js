@@ -110,6 +110,23 @@ function renderChomage(){
     </div>`;
   d.querySelector('.back').onclick = ()=>{ if(history.length>1) history.back(); else location.hash='#'; };
   const answers = {};
+  // pré-remplissage déduit de la phrase (lecture seule : « Mes aides » garde son propre usage)
+  if(window.deduceTake){
+    const p = deduceTake(['motif','ageAns']);                    // consomme ses clés, laisse le reste
+    if(p && p.facts){
+      if(p.facts.motif) answers.motif = p.facts.motif;
+      if(p.facts.ageAns) answers.age = p.facts.ageAns < 53 ? 'u53' : p.facts.ageAns < 55 ? 'a53_54' : p.facts.ageAns < 57 ? 'a55' : 'a57';
+      if(answers.motif || answers.age){
+        d.querySelector('.pnote').insertAdjacentHTML('afterend',
+          `<p class="ded-note">✓ Pré-rempli d'après votre demande : <b>${esc(p.labels.join(' · '))}</b>
+           — <a class="lien cho-ded-clear" href="#">corriger</a></p>`);
+        d.querySelector('.cho-ded-clear').onclick = e => {
+          e.preventDefault(); delete answers.motif; delete answers.age;
+          d.querySelector('.ded-note').remove(); step();
+        };
+      }
+    }
+  }
   d.querySelector('.sim-restart a').onclick = e => { e.preventDefault(); Object.keys(answers).forEach(k=>delete answers[k]); d.querySelector('#cho-res').innerHTML=''; step(); };
   function next(){
     for(const f of CHOMAGE_FIELDS){

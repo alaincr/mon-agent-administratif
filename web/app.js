@@ -452,14 +452,25 @@ function showList(list, title, query){
   // détection d'ÉVÉNEMENT DE VIE : une recherche qui raconte l'événement propose le parcours
   // guidé (checklist + échéances) au-dessus des fiches, sans les remplacer.
   const EVENEMENTS = [
-    { id:'chomage', re:/perd(re|s|u)?\s+(mon|son)\s+(emploi|travail|boulot|job)|licenci|fin de (cdd|contrat|mission)|rupture conventionnelle|ch[ôo]mage/i,
+    { id:'chomage', re:/perd(re|s|u)?\s+(mon|son)\s+(emploi|travail|boulot|job|cdd|poste)|licenci|fin de (cdd|contrat|mission)|rupture conventionnelle|ch[ôo]mage/i,
       t:'Parcours guidé : je perds mon emploi', s:'Les démarches dans l\'ordre, avec vos échéances — inscription, allocation, mutuelle, aides.' },
     { id:'naissance', re:/enceinte|grossesse|b[ée]b[ée]|attend(s|ons)? un enfant|accouch|naissance|futur(e)? (papa|maman|parent)/i,
       t:'Parcours guidé : j\'attends un enfant', s:'De la déclaration de grossesse aux 5 jours pour déclarer la naissance — avec vos échéances.' },
   ];
   const ev = (query && !title) ? EVENEMENTS.find(e => e.re.test(query)) : null;
   const evt = ev ? `<a class="evtcard" href="#/parcours/${ev.id}"><b>${ev.t}</b><span>${ev.s}</span></a>` : '';
-  $('#results').innerHTML = evt + ai + head + rows + foot;
+  // DÉDUCTION DU CAS : si la phrase décrit une situation (« seule avec 2 enfants, je perds mon
+  // CDD »), on la comprend localement et on propose les simulateurs PRÉ-REMPLIS — corrigible.
+  let ded = '';
+  const dd = (query && !title && window.deduceFacts) ? deduceFacts(query) : null;
+  if(dd){
+    deduceStash(query, dd);
+    const links = [`<a class="lien" href="#/aides">Mes aides (pré-rempli)</a>`]
+      .concat(dd.facts.motif ? [`<a class="lien" href="#/chomage">Allocation chômage (pré-rempli)</a>`] : []);
+    ded = `<div class="dedcard"><b>D'après votre demande :</b> ${esc(dd.labels.join(' · '))}
+      <span class="ded-links">${links.join(' · ')}</span></div>`;
+  }
+  $('#results').innerHTML = evt + ded + ai + head + rows + foot;
   const panel = $('#results .ai');
   if(panel) panel.querySelector('.ai-btn').onclick = () => askAI(query, panel);
   $('#results').querySelectorAll('.subj').forEach(el=> el.onclick=()=>go('fiche', el.dataset.id));

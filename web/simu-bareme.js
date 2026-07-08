@@ -1,8 +1,8 @@
-// GÉNÉRÉ par scripts/build_simu_bareme.py — seuils calculés par OpenFisca-France 175.1.1 (période 2026-06). Ne pas éditer à la main.
+// GÉNÉRÉ par scripts/build_simu_bareme.py — seuils calculés par OpenFisca-France 175.1.1 (période 2026-07). Ne pas éditer à la main.
 const SIMU_BAREME = {
- "genere": "2026-07-07",
+ "genere": "2026-07-08",
  "openfisca_france": "175.1.1",
- "periode": "2026-06",
+ "periode": "2026-07",
  "source": "OpenFisca-France (moteur officiel), paramètres + cas-types",
  "rsa_socle": {
   "s0": 651.69,
@@ -20,13 +20,13 @@ const SIMU_BAREME = {
   "s3": 1673.7
  },
  "ppa_seuil": {
-  "s0": 2600,
+  "s0": 2700,
   "s1": 3300,
   "s2": 3100,
   "s3": 2300,
   "c0": 4400,
   "c1": 5000,
-  "c2": 5100,
+  "c2": 5200,
   "c3": 4700
  },
  "aspa_seul_mois": 1043.6,
