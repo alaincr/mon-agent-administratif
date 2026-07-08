@@ -1,6 +1,7 @@
 :root{
   --accent:#0b625a; --accent-d:#084c46; --accent-tint:#e1f5ee; --on-accent:#fff;
-  --bg:#f2f2f7; --card:#fff; --card2:#fff; --ink:#1c1c1e; --sec:#3c3c43; --mut:#8a8a8e;
+  /* --mut : 4,6:1 sur blanc (AA texte normal) — l'ancien #8a8a8e plafonnait à ~3,5:1 */
+  --bg:#f2f2f7; --card:#fff; --card2:#fff; --ink:#1c1c1e; --sec:#3c3c43; --mut:#6d6d72;
   --line:#e4e4ea; --field:#ececef; --danger:#c0362c; --warn-bg:#fff4e5; --warn-fg:#a24700;
   --ok:#0f6e56; --notice-bg:#3a2a00; --notice-fg:#fff; --notice-link:#ffcf66;
   --r:12px; --r-lg:16px; --r-sm:10px;

@@ -39,7 +39,11 @@ function go(kind, val){ location.hash = '#/'+kind+'/'+encodeURIComponent(val); }
 const VIEWS = { home:'#view-home', themes:'#view-themes', aide:'#view-aide', detail:'#detail' };
 function setView(name, tabHash){              // bascule la vue affichée + l'onglet actif
   for(const k in VIEWS){ const el = $(VIEWS[k]); if(el) el.hidden = (k !== name); }
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.h === tabHash));
+  document.querySelectorAll('.tab').forEach(b => {
+    const on = b.dataset.h === tabHash;
+    b.classList.toggle('on', on);
+    if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');   // lecteurs d'écran
+  });
   // Sur une fiche : on masque l'en-tête global (recherche) — la barre « Retour » du détail sert
   // d'en-tête plein écran (plus d'espace pour la réponse IA ; évite le chevauchement avec l'encoche).
   const onDetail = (name === 'detail');
@@ -456,6 +460,8 @@ function showList(list, title, query){
       t:'Parcours guidé : je perds mon emploi', s:'Les démarches dans l\'ordre, avec vos échéances — inscription, allocation, mutuelle, aides.' },
     { id:'naissance', re:/enceinte|grossesse|b[ée]b[ée]|attend(s|ons)? un enfant|accouch|naissance|futur(e)? (papa|maman|parent)/i,
       t:'Parcours guidé : j\'attends un enfant', s:'De la déclaration de grossesse aux 5 jours pour déclarer la naissance — avec vos échéances.' },
+    { id:'deces', re:/d[ée]c[èe]s|d[ée]c[ée]d[ée]|est morte?\b|obs[èe]ques|succession|veuf|veuve|perdu (ma|mon) (m[èe]re|p[èe]re|mari|femme|[ée]pou(x|se)|conjoint(e)?|fils|fille|fr[èe]re|s[oœ]ur|grand)/i,
+      t:'Parcours guidé : un proche est décédé', s:'Les démarches dans l\'ordre, à votre rythme — déclaration, obsèques, banques, réversion, succession.' },
   ];
   const ev = (query && !title) ? EVENEMENTS.find(e => e.re.test(query)) : null;
   const evt = ev ? `<a class="evtcard" href="#/parcours/${ev.id}"><b>${ev.t}</b><span>${ev.s}</span></a>` : '';

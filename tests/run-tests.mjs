@@ -121,14 +121,19 @@ t('cumul activité réduite : règle des 70 % + droits préservés', () => {
 });
 
 console.log('\n— parcours « événements de vie » —');
-t('chomage et naissance : 8 étapes chacun, échéances clés', () => {
+t('chomage, naissance, décès : 8 étapes chacun, échéances clés', () => {
   const P = g('PARCOURS');
   eq(P.chomage.etapes.length, 8, 'étapes chômage'); eq(P.naissance.etapes.length, 8, 'étapes naissance');
+  eq(P.deces.etapes.length, 8, 'étapes décès');
   const fin = '2026-06-17';
   const insc = P.chomage.etapes.find(e => e.id === 'inscription').quand(fin);
   eq(insc.due.toISOString().slice(0, 10), '2027-06-17', 'inscription = fin + 12 mois');
   const nais = P.naissance.etapes.find(e => e.id === 'naissance').quand('2026-11-04');
   eq(nais.due.toISOString().slice(0, 10), '2026-11-09', 'déclaration = accouchement + 5 j');
+  const dcl = P.deces.etapes.find(e => e.id === 'declaration').quand('2026-07-01');
+  eq(dcl.due.toISOString().slice(0, 10), '2026-07-02', 'déclaration décès = 24 h');
+  const suc = P.deces.etapes.find(e => e.id === 'succession').quand('2026-07-01');
+  eq(suc.due.toISOString().slice(0, 10), '2026-12-28', 'succession = 6 mois');
 });
 t('export agenda .ics : événement daté avec alarme', () => {
   const ev = sandbox.icsEvent('t', new Date('2026-10-10'), 'Déclarer la naissance', 'Sous 5 jours.');
