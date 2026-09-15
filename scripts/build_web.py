@@ -37,11 +37,15 @@ if os.path.exists('index/themes.json'):
     shutil.copy('index/themes.json', f'{DATA}/themes.json')
 
 # ---- parcours (1 fichier/id, dédoublonné) -----------------------------------
+# Copie INCONDITIONNELLE : ne copier que les absents laissait des parcours périmés en place
+# après régénération du corpus (bug de fraîcheur détecté au refresh de septembre 2026).
 n = 0
+seen = set()
 for p in sorted(glob.glob('skills/*/*.json')):
-    dst = f'{DATA}/skills/{os.path.basename(p)}'
-    if not os.path.exists(dst):
-        shutil.copy(p, dst); n += 1
+    base = os.path.basename(p)
+    if base in seen: continue
+    seen.add(base)
+    shutil.copy(p, f'{DATA}/skills/{base}'); n += 1
 
 # ---- data-manifest.json : hash + taille de chaque fichier (R1.1/R1.3) -------
 def sha256(path):

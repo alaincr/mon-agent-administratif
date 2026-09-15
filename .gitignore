@@ -34,3 +34,6 @@ node_modules/
 /android/
 .gradle/
 *.xcworkspace/xcuserdata/
+
+# dépôts externes du serveur MCP OpenFisca (clonés, cf. .mcp.json — leximpact + openfisca-france)
+/tools/
