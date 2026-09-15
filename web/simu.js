@@ -39,6 +39,9 @@ function miss(a){
 const SIMU_FIELDS = {
   enfants:    { q:'Combien d\'enfants de moins de 20 ans avez-vous à charge ?',
                 opts:()=>[[0,'Aucun'],[1,'1 enfant'],[2,'2 enfants'],[3,'3 enfants'],[4,'4 ou plus']] },
+  niveau:     { q:'Parmi les enfants scolarisés, y en a-t-il au collège ou au lycée ?',
+                opts:()=>[['aucun','Non — primaire ou autre'],['college','Oui, au collège'],
+                          ['lycee','Oui, au lycée'],['deux','Au collège ET au lycée']] },
   scolarises: { q:'Combien sont scolarisés, de 6 à 18 ans ?',
                 opts:a=>Array.from({length:Math.min(a.enfants,4)+1},(_,i)=>[i, i===0?'Aucun':String(i)]) },
   logement:   { q:'Pour votre logement, vous êtes…',
@@ -60,7 +63,7 @@ const SIMU_FIELDS = {
 };
 // Ordre de préférence : d'abord les questions « filtres » bon marché (qui écartent des aides sans
 // donnée sensible), les montants ensuite, la résidence en dernier (rarement nécessaire).
-const SIMU_ORDER = ['enfants','scolarises','logement','handicap','age','couple','revenus','revact','activite','residence'];
+const SIMU_ORDER = ['enfants','scolarises','niveau','logement','handicap','age','couple','revenus','revact','activite','residence'];
 
 // ----- les règles : v:'oui'|'peut'|'non' (tranché), v:null (non concerné), ou {need:[champs]} -----
 const SIMU_RULES = [
@@ -185,6 +188,46 @@ const SIMU_RULES = [
       if(revAn < plafondAn*1.1)
         return { v:'peut', why:'Revenus légèrement au-dessus du plafond : une ARS réduite (différentielle) est possible.' };
       return { v:'non', why:'Les revenus du foyer semblent dépasser le plafond de l\'ARS.' };
+    }},
+  // Bourses scolaires : frontières SIMULÉES par OpenFisca (le plafond dépend du RFR et du nombre
+  // d'enfants à charge). La question « niveau » n'est posée que s'il y a des enfants scolarisés.
+  { id:'bcollege', nom:'Bourse de collège', q:'bourse de collège',
+    simu:'https://www.education.gouv.fr/les-bourses-de-college-et-de-lycee-326728', org:'Collège (secrétariat)',
+    test(a){
+      let m;
+      if(m = miss(a,'enfants')) return m;
+      if(a.enfants === 0) return { v:null };
+      if(m = miss(a,'scolarises')) return m;
+      if(a.scolarises === 0) return { v:null };
+      if(m = miss(a,'niveau')) return m;
+      if(a.niveau !== 'college' && a.niveau !== 'deux') return { v:null };
+      if(!(BAREME && BAREME.bourse_college_seuil)) return { v:'peut', why:'Barème indisponible ici — le simulateur officiel tranche en 2 minutes.' };
+      if(m = miss(a,'couple','revenus')) return m;
+      const s = BAREME.bourse_college_seuil[baremeKey(a)];
+      if(a.revenus < s)
+        return { v:'oui', why:`Revenus du foyer (${fmtEur(a.revenus)}/mois) sous le plafond simulé (≈ ${fmtEur(s)}) : jusqu'à ${fmtEur(BAREME.bourse_college_max_an||525)}/an par collégien. La demande se fait en début d'année scolaire, auprès de l'établissement.` };
+      if(a.revenus < s*1.15)
+        return { v:'peut', why:'Revenus proches du plafond : le calcul officiel se fonde sur le revenu fiscal de référence exact — vérifiez, la demande ne coûte rien.' };
+      return { v:'non', why:'Les revenus du foyer semblent dépasser les plafonds de la bourse de collège.' };
+    }},
+  { id:'blycee', nom:'Bourse de lycée', q:'bourse de lycée',
+    simu:'https://www.education.gouv.fr/les-bourses-de-college-et-de-lycee-326728', org:'Lycée (secrétariat)',
+    test(a){
+      let m;
+      if(m = miss(a,'enfants')) return m;
+      if(a.enfants === 0) return { v:null };
+      if(m = miss(a,'scolarises')) return m;
+      if(a.scolarises === 0) return { v:null };
+      if(m = miss(a,'niveau')) return m;
+      if(a.niveau !== 'lycee' && a.niveau !== 'deux') return { v:null };
+      if(!(BAREME && BAREME.bourse_lycee_seuil)) return { v:'peut', why:'Barème indisponible ici — le simulateur officiel tranche en 2 minutes.' };
+      if(m = miss(a,'couple','revenus')) return m;
+      const s = BAREME.bourse_lycee_seuil[baremeKey(a)];
+      if(a.revenus < s)
+        return { v:'oui', why:`Revenus du foyer (${fmtEur(a.revenus)}/mois) sous le plafond simulé (≈ ${fmtEur(s)}) : jusqu'à ${fmtEur(BAREME.bourse_lycee_max_an||1071)}/an par lycéen selon l'échelon. Demande en début d'année scolaire.` };
+      if(a.revenus < s*1.15)
+        return { v:'peut', why:'Revenus proches du plafond : le calcul officiel se fonde sur le revenu fiscal de référence exact — vérifiez, la demande ne coûte rien.' };
+      return { v:'non', why:'Les revenus du foyer semblent dépasser les plafonds de la bourse de lycée.' };
     }},
   { id:'css', nom:'Complémentaire santé solidaire', q:'complémentaire santé solidaire',
     simu:'https://www.mesdroitssociaux.gouv.fr/', org:'Assurance maladie (CPAM)',

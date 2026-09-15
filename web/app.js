@@ -51,8 +51,21 @@ function setView(name, tabHash){              // bascule la vue affichée + l'on
   document.body.classList.toggle('detailing', onDetail);
   window.scrollTo(0, 0);
 }
-function showEmpty(){                          // état vide de l'accueil (invite à chercher)
-  $('#results').innerHTML = '<div class="empty">'
+function showEmpty(){                          // état vide de l'accueil (invite à chercher + SUIVI)
+  // tableau de bord : échéances à venir des parcours entamés (données 100 % locales)
+  const suivi = (window.parcoursSuivi ? parcoursSuivi(5) : []);
+  const fmtJ = it => it.jours < 0 ? '<b class="sv-late">dépassée</b>'
+    : it.jours === 0 ? '<b class="sv-now">aujourd\'hui</b>'
+    : it.jours === 1 ? '<b class="sv-now">demain</b>'
+    : it.jours <= 7 ? '<b class="sv-now">dans ' + it.jours + ' j</b>'
+    : 'dans ' + it.jours + ' j';
+  const suiviHtml = suivi.length ? '<div class="suivi"><h3>Vos échéances</h3>'
+    + suivi.map(it => `<a class="sv-row" href="#/parcours/${it.parcours}">
+        <span class="sv-when">${fmtJ(it)}</span>
+        <span class="sv-tx">${esc(it.etape)}<small>${esc(it.titre)} · ${it.due.toLocaleDateString('fr-FR')}</small></span>
+      </a>`).join('')
+    + '</div>' : '';
+  $('#results').innerHTML = suiviHtml + '<div class="empty">'
     + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>'
     + '<h2>Cherchez une démarche</h2>'
     + '<p>Décrivez votre besoin en langage courant, ou parcourez les thèmes.</p>'

@@ -1,8 +1,8 @@
-// GÉNÉRÉ par scripts/build_simu_bareme.py — seuils calculés par OpenFisca-France 175.1.1 (période 2026-07). Ne pas éditer à la main.
+// GÉNÉRÉ par scripts/build_simu_bareme.py — seuils calculés par OpenFisca-France 176.0.9 (période 2026-09). Ne pas éditer à la main.
 const SIMU_BAREME = {
- "genere": "2026-07-08",
- "openfisca_france": "175.1.1",
- "periode": "2026-07",
+ "genere": "2026-09-15",
+ "openfisca_france": "176.0.9",
+ "periode": "2026-09",
  "source": "OpenFisca-France (moteur officiel), paramètres + cas-types",
  "rsa_socle": {
   "s0": 651.69,
@@ -29,6 +29,24 @@ const SIMU_BAREME = {
   "c2": 5200,
   "c3": 4700
  },
+ "bourse_college_seuil": {
+  "s1": 2000,
+  "s2": 2400,
+  "s3": 2800,
+  "c1": 2000,
+  "c2": 2400,
+  "c3": 2800
+ },
+ "bourse_college_max_an": 525,
+ "bourse_lycee_seuil": {
+  "s1": 2400,
+  "s2": 2600,
+  "s3": 3000,
+  "c1": 2400,
+  "c2": 2600,
+  "c3": 3000
+ },
+ "bourse_lycee_max_an": 1071,
  "aspa_seul_mois": 1043.6,
  "aspa_couple_mois": 1620.18,
  "aah_mois": 1041.59,

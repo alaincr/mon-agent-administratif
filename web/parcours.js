@@ -161,6 +161,28 @@ function parcoursKey(id){ return 'sp_parcours_' + id; }
 function parcoursState(id){ try{ return JSON.parse(localStorage.getItem(parcoursKey(id))||'{}'); }catch(e){ return {}; } }
 function parcoursSave(id, st){ try{ localStorage.setItem(parcoursKey(id), JSON.stringify(st)); }catch(e){} }
 
+// ----- SUIVI : les échéances à venir de TOUS les parcours entamés (pour l'accueil) -----
+// Un parcours est « entamé » dès qu'une date pivot est posée. On remonte les étapes datées non
+// cochées, triées par urgence — l'app devient un tableau de bord, pas une simple consultation.
+function parcoursSuivi(max){
+  const out = [];
+  const now = new Date(); now.setHours(0,0,0,0);
+  for(const id in PARCOURS){
+    const st = parcoursState(id);
+    if(!st.date) continue;
+    const done = st.done || {};
+    for(const e of PARCOURS[id].etapes){
+      if(done[e.id]) continue;
+      const w = e.quand(st.date);
+      if(!w.due || w.recurrent) continue;
+      const jours = Math.round((w.due - now) / 864e5);
+      out.push({ parcours: id, titre: PARCOURS[id].titre, etape: e.titre, due: w.due, jours });
+    }
+  }
+  out.sort((a, b) => a.due - b.due);
+  return out.slice(0, max || 5);
+}
+
 function renderParcours(id){
   const P = PARCOURS[id];
   const d = document.querySelector('#detail');

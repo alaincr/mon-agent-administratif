@@ -34,9 +34,10 @@ def months(year):
 CONFIGS = [('s', False, 0), ('s', False, 1), ('s', False, 2), ('s', False, 3),
            ('c', True, 0), ('c', True, 1), ('c', True, 2), ('c', True, 3)]
 
-def build_case(salaries_by_house, isolement=False):
+def build_case(salaries_by_house, isolement=False, scolarite=None):
     """salaries_by_house : liste de (config_idx, salaire_mensuel_foyer). → entités OpenFisca.
-    isolement=True : pose la condition « isolement récent » (RSA majoré parent isolé)."""
+    isolement=True : pose la condition « isolement récent » (RSA majoré parent isolé).
+    scolarite='college'|'lycee' : scolarise les enfants (bourses scolaires)."""
     mm = months(YEAR) + months(YEAR-1) + months(YEAR-2)
     individus, foyers, familles, menages = {}, {}, {}, {}
     for h, (ci, sal) in enumerate(salaries_by_house):
@@ -48,7 +49,11 @@ def build_case(salaries_by_house, isolement=False):
                             'date_naissance': {'ETERNITY': '1985-01-01'}}
         enfants = [f'e{k}_{h}' for k in range(nk)]
         for k, e in enumerate(enfants):
-            individus[e] = {'date_naissance': {'ETERNITY': f'{YEAR-8-k}-01-01'}}
+            # âge collège (12 ans) ou lycée (16 ans) si scolarité demandée, sinon 8-14 ans
+            birth_year = YEAR - (12 if scolarite == 'college' else 16 if scolarite == 'lycee' else 8 + k)
+            individus[e] = {'date_naissance': {'ETERNITY': f'{birth_year}-01-01'}}
+            if scolarite:
+                individus[e]['scolarite'] = {m: scolarite for m in mm}
         foyers[f'ff_{h}'] = {'declarants': parents, 'personnes_a_charge': enfants}
         fam = {'parents': parents, 'enfants': enfants}
         if isolement and not couple and nk > 0:
@@ -98,6 +103,32 @@ try:
     out['ppa_seuil'] = seuils
 except Exception as e:
     print('PPA ✗', e)
+
+# ---------------------------------------------------------------------------
+# 2 bis) Bourses de collège et de lycée : montants et FRONTIÈRES simulés (les plafonds
+#    paramétriques sont exprimés en % de BMAF — la simulation évite toute erreur d'unité).
+#    Le seuil dépend du RFR et du nb d'enfants à charge ; enfants scolarisés au même niveau,
+#    montants ramenés PAR ENFANT.
+try:
+    kid_configs = [i for i in range(len(CONFIGS)) if CONFIGS[i][2] > 0]
+    grid = list(range(0, 4200, 200))
+    for niveau in ('college', 'lycee'):
+        houses = [(ci, float(s)) for ci in kid_configs for s in grid]
+        case = build_case(houses, scolarite=niveau)
+        # NB : malgré definition_period=MONTH, la formule renvoie le montant ANNUEL
+        # (label « Montant annuel de la bourse » — vérifié contre les taux publiés).
+        val = simulate(case, 'bourse_' + niveau, PERIOD)
+        seuils, mmax = {}, 0.0
+        for j, ci in enumerate(kid_configs):
+            vals = val[j*len(grid):(j+1)*len(grid)]
+            nk = CONFIGS[ci][2]
+            idx = [i for i, v in enumerate(vals) if v / nk > 5]          # bourse annuelle/enfant > 5 €
+            seuils[CONFIGS[ci][0] + str(CONFIGS[ci][2])] = grid[max(idx)] if idx else 0
+            if len(vals): mmax = max(mmax, float(max(vals)) / nk)
+        out['bourse_' + niveau + '_seuil'] = seuils
+        out['bourse_' + niveau + '_max_an'] = round(mmax)                # meilleur échelon, annuel/enfant
+except Exception as e:
+    print('BOURSES ✗', e)
 
 # ---------------------------------------------------------------------------
 # 3) Plafonds directs (paramètres officiels, valeurs à PERIOD)

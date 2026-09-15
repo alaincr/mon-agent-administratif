@@ -77,11 +77,22 @@ t('A. propriétaire aisé, seul : tout écarté en peu de questions', () => {
   if (r.questions > 8) throw new Error('trop de questions : ' + r.questions);
   for (const k of ['rsa', 'ppa', 'apl', 'css']) eq(r.verdicts[k], 'non', k);
 });
-t('B. parent isolé, 2 enfants, 900 € : droits ouverts', () => {
-  const r = runProfile({ enfants: 2, scolarises: 1, logement: 'locataire', handicap: 'non', age: 'adult', couple: false, revenus: 900, revact: 0, residence: true });
+t('B. parent isolé, 2 enfants (1 collégien), 900 € : droits ouverts + bourse', () => {
+  const r = runProfile({ enfants: 2, scolarises: 1, niveau: 'college', logement: 'locataire', handicap: 'non', age: 'adult', couple: false, revenus: 900, revact: 0, residence: true });
   eq(r.verdicts.rsa, 'oui', 'rsa'); eq(r.verdicts.af, 'oui', 'af');
   eq(r.verdicts.ars, 'oui', 'ars'); eq(r.verdicts.css, 'oui', 'css');
   eq(r.verdicts.apl, 'peut', 'apl'); eq(r.verdicts.ppa, 'non', 'ppa');
+  eq(r.verdicts.bcollege, 'oui', 'bourse collège');
+  eq(r.verdicts.blycee, undefined, 'bourse lycée non concernée');
+});
+t('B2. lycéen, revenus au-dessus du plafond bourse : lycée non, collège absent', () => {
+  const r = runProfile({ enfants: 1, scolarises: 1, niveau: 'lycee', logement: 'proprietaire', handicap: 'non', age: 'adult', couple: true, revenus: 4000, revact: 2000, activite: 'non', residence: true });
+  eq(r.verdicts.blycee, 'non', 'bourse lycée');
+  eq(r.verdicts.bcollege, undefined, 'bourse collège non concernée');
+});
+t('B3. sans enfant scolarisé : la question « niveau » n\'est jamais posée', () => {
+  const r = runProfile({ enfants: 2, scolarises: 0, logement: 'proprietaire', handicap: 'non', age: 'adult', couple: true, revenus: 4000, revact: 2000, activite: 'non', residence: true });
+  eq(r.verdicts.bcollege, undefined); eq(r.verdicts.blycee, undefined);
 });
 t('D. salarié célibataire 2 500 € : prime d\'activité détectée (frontière réelle)', () => {
   const r = runProfile({ enfants: 0, logement: 'locataire', handicap: 'non', age: 'adult', couple: false, revenus: 2500, revact: 2500, activite: 'non', residence: true });
@@ -134,6 +145,19 @@ t('chomage, naissance, décès : 8 étapes chacun, échéances clés', () => {
   eq(dcl.due.toISOString().slice(0, 10), '2026-07-02', 'déclaration décès = 24 h');
   const suc = P.deces.etapes.find(e => e.id === 'succession').quand('2026-07-01');
   eq(suc.due.toISOString().slice(0, 10), '2026-12-28', 'succession = 6 mois');
+});
+t('suivi (accueil) : échéances des parcours entamés, triées', () => {
+  const iso = d => d.toISOString().slice(0, 10);
+  const in3 = new Date(Date.now() + 3*864e5), in40 = new Date(Date.now() + 40*864e5);
+  sandbox.localStorage.setItem('sp_parcours_chomage', JSON.stringify({ date: iso(in3), done: { docs: true } }));
+  sandbox.localStorage.setItem('sp_parcours_naissance', JSON.stringify({ date: iso(in40) }));
+  const s = sandbox.parcoursSuivi(10);
+  if (!s.length) throw new Error('aucune échéance remontée');
+  for (let i = 1; i < s.length; i++) if (s[i].due < s[i-1].due) throw new Error('tri par date cassé');
+  if (s.some(x => x.etape.includes('documents de fin'))) throw new Error('étape cochée remontée');
+  if (!s.some(x => x.parcours === 'naissance')) throw new Error('parcours naissance absent');
+  sandbox.localStorage.removeItem('sp_parcours_chomage');
+  sandbox.localStorage.removeItem('sp_parcours_naissance');
 });
 t('export agenda .ics : événement daté avec alarme', () => {
   const ev = sandbox.icsEvent('t', new Date('2026-10-10'), 'Déclarer la naissance', 'Sous 5 jours.');
